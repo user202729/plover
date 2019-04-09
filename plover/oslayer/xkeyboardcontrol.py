@@ -1121,6 +1121,8 @@ class KeyboardEmulation:
 
     class Mapping:
 
+        __slots__ = 'keycode', 'modifiers', 'keysym', 'custom_mapping'
+
         def __init__(self, keycode, modifiers, keysym, custom_mapping=None):
             self.keycode = keycode
             self.modifiers = modifiers
