@@ -42,8 +42,7 @@ def normalize_steno(strokes_string):
     """Convert steno strings to one common form."""
     if not strokes_string:
         return ()
-    return tuple(normalize_stroke(stroke) for stroke
-                 in strokes_string.split(STROKE_DELIMITER))
+    return tuple(strokes_string.split(STROKE_DELIMITER))
 
 def sort_steno_keys(steno_keys):
     return sorted(steno_keys, key=lambda x: system.KEY_ORDER.get(x, -1))
