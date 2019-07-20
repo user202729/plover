@@ -30,7 +30,7 @@ class JsonDictionary(StenoDictionary):
                 break
         else:
             raise ValueError('\'%s\' encoding could not be determined' % (filename,))
-        d = dict(json.loads(contents))
+        d = json.loads(contents)
         self.update((normalize_steno(x[0]), x[1]) for x in d.items())
 
     def _save(self, filename):
