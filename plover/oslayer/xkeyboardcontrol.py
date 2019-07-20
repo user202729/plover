@@ -186,6 +186,9 @@ class XEventLoop(threading.Thread):
             os.close(fd)
 
 
+_HELD_KEYCODES = set()  # keycodes currently held by the xinput keyboard
+
+
 class KeyboardCapture(XEventLoop):
     """Listen to keyboard press and release events."""
 
@@ -196,7 +199,6 @@ class KeyboardCapture(XEventLoop):
         if not self._display.has_extension('XInputExtension'):
             raise Exception('Xlib\'s XInput extension is required, but could not be found.')
         self._suppressed_keys = set()
-        self._held_keycodes = set()
         self._grabbed_keyboard = False
         self._devices = []
         self.key_down = lambda key: None
@@ -238,15 +240,15 @@ class KeyboardCapture(XEventLoop):
         keycode = event.data.detail
         modifiers = event.data.mods.effective_mods & ~0b10000 & 0xFF
         key = KEYCODE_TO_KEY.get(keycode)
-        if self._grabbed_keyboard:
-            if event.evtype == xinput.KeyPress:
+        if event.evtype == xinput.KeyPress:
+            if self._grabbed_keyboard:
                 if modifiers or key not in self._suppressed_keys:
                     xtest.fake_input(self._display, event.evtype, keycode)
-                    self._held_keycodes.add(keycode)
-            else:
-                if keycode in self._held_keycodes:
-                    xtest.fake_input(self._display, event.evtype, keycode)
-                    self._held_keycodes.remove(keycode)
+                    _HELD_KEYCODES.add(keycode)
+        else:
+            if keycode in _HELD_KEYCODES:
+                xtest.fake_input(self._display, event.evtype, keycode)
+                _HELD_KEYCODES.remove(keycode)
 
         if key is None:
             # Not a supported key, ignore...
@@ -268,7 +270,6 @@ class KeyboardCapture(XEventLoop):
         suppressed_keys = self._suppressed_keys
         self._grabbed_keyboard = False
         self._suppressed_keys = set()
-        self._held_keycodes = set()
         self.suppress_keyboard(suppressed_keys)
         super().start()
 
