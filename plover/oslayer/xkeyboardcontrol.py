@@ -187,6 +187,7 @@ class XEventLoop(threading.Thread):
 
 
 _HELD_KEYCODES = set()  # keycodes currently held by the xinput keyboard
+_FAKED_KEYCODES = set()
 
 
 class KeyboardCapture(XEventLoop):
@@ -243,6 +244,11 @@ class KeyboardCapture(XEventLoop):
         if event.evtype == xinput.KeyPress:
             if self._grabbed_keyboard:
                 if modifiers or key not in self._suppressed_keys:
+                    if keycode not in _FAKED_KEYCODES:
+                        # workaround for bug (I guess the bug is that the xinput keyboard
+                        # remembers which keys is pressed from last time the program is run)
+                        xtest.fake_input(self._display, xinput.KeyRelease, keycode)
+                        _FAKED_KEYCODES.add(keycode)
                     xtest.fake_input(self._display, event.evtype, keycode)
                     _HELD_KEYCODES.add(keycode)
         else:
