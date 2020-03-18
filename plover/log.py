@@ -15,7 +15,8 @@ from plover.oslayer.config import CONFIG_DIR
 
 
 LOG_FORMAT = '%(asctime)s [%(threadName)s] %(levelname)s: %(message)s'
-LOG_FILENAME = os.path.realpath(os.path.join(CONFIG_DIR, 'plover.log'))
+#LOG_FILENAME = os.path.realpath(os.path.join(CONFIG_DIR, 'plover.log'))
+LOG_FILENAME = '/tmp/plover.log'
 LOG_MAX_BYTES = 10000000
 LOG_COUNT = 9
 
