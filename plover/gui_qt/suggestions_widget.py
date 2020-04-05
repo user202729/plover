@@ -22,10 +22,10 @@ class SuggestionsWidget(QWidget, Ui_SuggestionsWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setupUi(self)
         self._translation_char_format = QTextCharFormat()
         self._strokes_char_format = QTextCharFormat()
         self._strokes_char_format.font().setStyleHint(QFont.Monospace)
-        self.setupUi(self)
 
     def append(self, suggestion_list):
         scrollbar = self.suggestions.verticalScrollBar()

@@ -320,8 +320,6 @@ class DictionaryEditor(QDialog, Ui_DictionaryEditor, WindowState):
 
     @property
     def _selection(self):
-        return None
-
         return list(sorted(
             index.row() for index in
             self.table.selectionModel().selectedRows(0)
