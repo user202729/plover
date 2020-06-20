@@ -27,6 +27,7 @@ import os
 import string
 import select
 import threading
+from time import sleep
 
 from Xlib import X, XK, display
 from Xlib.ext import xinput, xtest
@@ -1168,6 +1169,7 @@ class KeyboardEmulation(XEventLoop):
         """Prepare to emulate keyboard events."""
         super().__init__(name='emulation')
         self._update_keymap()
+        self._time_between_key_presses = 0
         self._update_modifiers()
         self._self_change = []
         # List of keycodes of keyboard mapping changes created by this KeyboardEmulation object
@@ -1190,6 +1192,9 @@ class KeyboardEmulation(XEventLoop):
 
             elif event.request == X.MappingModifier:
                 self._update_modifiers()
+
+    def set_time_between_key_presses(self, ms):
+        self._time_between_key_presses = ms
 
     def _update_keymap(self):
         '''Analyse keymap, build a mapping of keysym to (keycode + modifiers),
@@ -1267,6 +1272,9 @@ class KeyboardEmulation(XEventLoop):
         for x in range(number_of_backspaces):
             self._send_keycode(self._backspace_mapping.keycode,
                                self._backspace_mapping.modifiers)
+            if self._time_between_key_presses != 0:
+                sleep(self._time_between_key_presses / 1000)
+                self._display.sync()
         self._display.sync()
 
     @with_display_lock
@@ -1287,6 +1295,9 @@ class KeyboardEmulation(XEventLoop):
                 continue
             self._send_keycode(mapping.keycode,
                                mapping.modifiers)
+            if self._time_between_key_presses != 0:
+                sleep(self._time_between_key_presses / 1000)
+                self._display.sync()
         self._display.sync()
 
     @with_display_lock
