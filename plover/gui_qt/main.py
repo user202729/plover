@@ -8,6 +8,7 @@ from PyQt5.QtCore import (
     Qt,
 )
 from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtGui import QPalette, QColor
 
 from plover import log
 from plover import __name__ as __software_name__
@@ -38,6 +39,22 @@ class Application:
 
         self._app = QApplication([])
         self._app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
+        palette = QPalette()
+        palette.setColor(QPalette.Window, QColor(53, 53, 53))
+        palette.setColor(QPalette.WindowText, Qt.white)
+        palette.setColor(QPalette.Base, QColor(25, 25, 25))
+        palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+        palette.setColor(QPalette.ToolTipBase, Qt.black)
+        palette.setColor(QPalette.ToolTipText, Qt.white)
+        palette.setColor(QPalette.Text, Qt.white)
+        palette.setColor(QPalette.Button, QColor(53, 53, 53))
+        palette.setColor(QPalette.ButtonText, Qt.white)
+        palette.setColor(QPalette.BrightText, Qt.red)
+        palette.setColor(QPalette.Link, QColor(42, 130, 218))
+        palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+        palette.setColor(QPalette.HighlightedText, Qt.black)
+        self._app.setPalette(palette)
 
         # Enable localization of standard Qt controls.
         self._translator = QTranslator()
