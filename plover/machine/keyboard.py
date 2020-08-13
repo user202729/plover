@@ -24,16 +24,17 @@ class Keyboard(StenotypeBase):
     def __init__(self, params):
         """Monitor the keyboard's events."""
         super().__init__()
+        # Warning: arpeggiate currently doesn't work with first-up chord send
         self._arpeggiate = params['arpeggiate']
         self._is_suppressed = False
         # Currently held keys.
         self._down_keys = set()
-        # All keys part of the stroke.
-        self._stroke_keys = set()
         self._keyboard_capture = None
+        # Number of key down events since the last recognized chord.
         self._last_stroke_key_down_count = 0
         self._stroke_key_down_count = 0
         self._update_bindings()
+        self._ignore = False
 
     def _suppress(self):
         if self._keyboard_capture is None:
@@ -95,29 +96,24 @@ class Keyboard(StenotypeBase):
         """Called when a key is pressed."""
         assert key is not None
         self._stroke_key_down_count += 1
-        self._down_keys.add(key)
-        self._stroke_keys.add(key)
+        if key not in self._down_keys:
+            self._down_keys.add(key)
+            self._ignore = False
 
     def _key_up(self, key):
         """Called when a key is released."""
         assert key is not None
-        self._down_keys.discard(key)
-        # A stroke is complete if all pressed keys have been released,
-        # and — when arpeggiate mode is enabled — the arpeggiate key
-        # is part of it.
-        if (
-            self._down_keys or
-            not self._stroke_keys or
-            (self._arpeggiate and self._arpeggiate_key not in self._stroke_keys)
-        ):
+        if self._ignore:
+            self._down_keys.discard(key)
             return
         self._last_stroke_key_down_count = self._stroke_key_down_count
-        steno_keys = {self._bindings.get(k) for k in self._stroke_keys}
+        steno_keys = {self._bindings.get(k) for k in self._down_keys}
         steno_keys -= {None}
         if steno_keys:
             self._notify(steno_keys)
-        self._stroke_keys.clear()
+        self._down_keys.discard(key)
         self._stroke_key_down_count = 0
+        self._ignore = True
 
     @classmethod
     def get_option_info(cls):
