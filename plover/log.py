@@ -69,7 +69,7 @@ class Logger:
         self._platform_handler = None
         self._logger = logging.getLogger('plover')
         self._logger.addHandler(self._print_handler)
-        self._logger.setLevel(INFO)
+        self._logger.setLevel(DEBUG)
         self._stroke_filename = None
         self._stroke_logger = logging.getLogger('plover-strokes')
         self._stroke_logger.setLevel(INFO)
