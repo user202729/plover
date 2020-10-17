@@ -1118,17 +1118,19 @@ class KeyboardEmulation:
 
     class Mapping:
 
-        def __init__(self, keycode, modifiers, keysym, custom_mapping=None):
+        def __init__(self, keycode, modifiers, keysym, keysym_index, custom_mapping=None):
             self.keycode = keycode
             self.modifiers = modifiers
             self.keysym = keysym
+            self.keysym_index = keysym_index
             self.custom_mapping = custom_mapping
 
         def __str__(self):
-            return '%u:%x=%x[%s]%s' % (
+            return '%u:%x=%x[%s]%s:%x' % (
                 self.keycode, self.modifiers,
                 self.keysym, keysym_to_string(self.keysym),
                 '' if self.custom_mapping is None else '*',
+                self.keysym_index
             )
 
     # We can use the first 2 entry of a X11 mapping:
@@ -1180,7 +1182,7 @@ class KeyboardEmulation:
                 if 4 <= keysym_index <= 5:
                     # 3rd (AltGr) level.
                     modifiers |= X.Mod5Mask
-                mapping = self.Mapping(keycode, modifiers, keysym, custom_mapping)
+                mapping = self.Mapping(keycode, modifiers, keysym, keysym_index, custom_mapping)
                 if keysym != X.NoSymbol:
                     # Some keysym are mapped multiple times, prefer lower modifiers combos.
                     previous_mapping = self._keymap.get(keysym)
@@ -1332,9 +1334,8 @@ class KeyboardEmulation:
                 return None
             mapping = self._custom_mappings_queue.pop(0)
             previous_keysym = mapping.keysym
-            keysym_index = mapping.custom_mapping.index(previous_keysym)
             # Update X11 keymap.
-            mapping.custom_mapping[keysym_index] = keysym
+            mapping.custom_mapping[mapping.keysym_index] = keysym
             self._display.change_keyboard_mapping(mapping.keycode, [mapping.custom_mapping])
             # Update our keymap.
             if previous_keysym in self._keymap:
