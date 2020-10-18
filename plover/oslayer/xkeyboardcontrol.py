@@ -1166,13 +1166,14 @@ class KeyboardEmulation:
         # Analyse X11 keymap.
         keycode = self._display.display.info.min_keycode
         keycode_count = self._display.display.info.max_keycode - keycode + 1
+        VoidSymbol = 0xffffff
         for mapping in self._display.get_keyboard_mapping(keycode, keycode_count):
             mapping = tuple(mapping)
             while mapping and X.NoSymbol == mapping[-1]:
                 mapping = mapping[:-1]
             if not mapping:
                 # Free never used before keycode.
-                custom_mapping = [X.NoSymbol] * self.CUSTOM_MAPPING_LENGTH
+                custom_mapping = [VoidSymbol] * self.CUSTOM_MAPPING_LENGTH
                 custom_mapping[-1] = self.PLOVER_MAPPING_KEYSYM
                 mapping = custom_mapping
             elif self.CUSTOM_MAPPING_LENGTH == len(mapping) and \
@@ -1195,7 +1196,7 @@ class KeyboardEmulation:
                     # 3rd (AltGr) level.
                     modifiers |= X.Mod5Mask
                 mapping = self.Mapping(keycode, modifiers, keysym, custom_mapping)
-                if keysym != X.NoSymbol:
+                if keysym != X.NoSymbol and keysym != VoidSymbol:
                     # Some keysym are mapped multiple times, prefer lower modifiers combos.
                     previous_mapping = self._keymap.get(keysym)
                     if previous_mapping is None or mapping.modifiers < previous_mapping.modifiers:
