@@ -210,8 +210,10 @@ class StenoDictionaryCollection:
             if key_len > d.longest_key:
                 continue
             value = d.get(key)
-            if value:
+            if value is not None:
                 if not any(f(key, value) for f in filters):
+                    if value.lower() == "{plover:deleted}":
+                        return None
                     return value
 
     def _lookup_from_all(self, key, dicts=None, filters=()):
