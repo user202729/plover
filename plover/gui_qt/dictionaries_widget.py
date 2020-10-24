@@ -62,6 +62,7 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
         self._config_dictionaries = {}
         self._loaded_dictionaries = {}
         self._reverse_order = False
+        self._show_basename_only = False
         for action in (
             self.action_Undo,
             self.action_EditDictionaries,
@@ -107,6 +108,11 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
 
     def on_config_changed(self, config_update):
         update_kwargs = {}
+        if 'show_dictionary_basename_only' in config_update:
+            update_kwargs.update(
+                show_basename_only=config_update['show_dictionary_basename_only'],
+                record=False, save=False,
+            )
         if 'dictionaries' in config_update:
             update_kwargs.update(
                 config_dictionaries=config_update['dictionaries'],
@@ -122,13 +128,16 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
 
     def _update_dictionaries(self, config_dictionaries=None, loaded_dictionaries=None,
                              reverse_order=None, record=True, save=True,
-                             reset_undo=False, keep_selection=True):
+                             reset_undo=False, keep_selection=True, show_basename_only=None):
         if reverse_order is None:
             reverse_order = self._reverse_order
+        if show_basename_only is None:
+            show_basename_only = self._show_basename_only
         if config_dictionaries is None:
             config_dictionaries = self._config_dictionaries
         if config_dictionaries == self._config_dictionaries and \
            reverse_order == self._reverse_order and \
+           show_basename_only == self._show_basename_only and \
            loaded_dictionaries is None:
             return
         if save:
@@ -147,6 +156,7 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
         else:
             self._loaded_dictionaries = loaded_dictionaries
         self._reverse_order = reverse_order
+        self._show_basename_only = show_basename_only
         self._updating = True
         self.table.setRowCount(len(config_dictionaries))
         favorite_set = False
@@ -154,7 +164,7 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
             row = n
             if self._reverse_order:
                 row = len(config_dictionaries) - row - 1
-            item = QTableWidgetItem(dictionary.short_path)
+            item = QTableWidgetItem(dictionary.basename if show_basename_only else dictionary.short_path)
             item.setFlags((item.flags() | Qt.ItemIsUserCheckable) & ~Qt.ItemIsEditable)
             item.setCheckState(Qt.Checked if dictionary.enabled else Qt.Unchecked)
             item.setToolTip(dictionary.path)

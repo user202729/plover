@@ -288,6 +288,8 @@ class ConfigWindow(QDialog, Ui_ConfigWindow, WindowState):
                              _('Set the display order for dictionaries:\n'
                                '- top-down: match the search order; highest priority first\n'
                                '- bottom-up: reverse search order; lowest priority first\n')),
+                ConfigOption(_('Show dictionary base name only:'), 'show_dictionary_basename_only', BooleanOption,
+                             _('Show only the base name of the dictionaries in the dictionaries table.')),
             )),
             (_('Logging'), (
                 ConfigOption(_('Log file:'), 'log_file_name',
