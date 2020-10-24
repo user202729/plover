@@ -198,7 +198,7 @@ class StenoDictionaryCollection:
             d.add_longest_key_listener(self._longest_key_listener)
         self._longest_key_listener()
 
-    def _lookup(self, key, dicts=None, filters=()):
+    def _lookup_keep_deleted(self, key, dicts=None, filters=()):
         if dicts is None:
             dicts = self.dicts
         key_len = len(key)
@@ -212,9 +212,13 @@ class StenoDictionaryCollection:
             value = d.get(key)
             if value is not None:
                 if not any(f(key, value) for f in filters):
-                    if value.lower() == "{plover:deleted}":
-                        return None
                     return value
+
+    def _lookup(self, key, dicts=None, filters=()):
+        result = self._lookup_keep_deleted(key, dicts, filters)
+        if result is None or result.lower() == "{plover:deleted}":
+            return None
+        return result
 
     def _lookup_from_all(self, key, dicts=None, filters=()):
         ''' Key lookup from all dictionaries
@@ -263,7 +267,7 @@ class StenoDictionaryCollection:
                 continue
             # Ignore key if it's overridden by a higher priority dictionary.
             keys.update(k for k in d.reverse_lookup(value)
-                        if self._lookup(k, dicts=self.dicts[:n]) is None)
+                        if self._lookup_keep_deleted(k, dicts=self.dicts[:n]) is None)
         return keys
 
     def casereverse_lookup(self, value):
