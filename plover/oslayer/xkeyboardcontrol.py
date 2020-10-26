@@ -202,7 +202,6 @@ class KeyboardCapture(XEventLoop):
         if not self._display.has_extension('XInputExtension'):
             raise Exception('Xlib\'s XInput extension is required, but could not be found.')
         self._suppressed_keys = set()
-        self._grabbed_keyboard = False
         self._devices = []
         self.key_down = lambda key: None
         self.key_up = lambda key: None
@@ -243,21 +242,6 @@ class KeyboardCapture(XEventLoop):
         keycode = event.data.detail
         modifiers = event.data.mods.effective_mods & ~0b10000 & 0xFF
         key = KEYCODE_TO_KEY.get(keycode)
-        if event.evtype == xinput.KeyPress:
-            if self._grabbed_keyboard:
-                if modifiers or key not in self._suppressed_keys:
-                    if keycode not in _FAKED_KEYCODES:
-                        # workaround for bug (I guess the bug is that the xinput keyboard
-                        # remembers which keys is pressed from last time the program is run)
-                        xtest.fake_input(self._display, xinput.KeyRelease, keycode)
-                        _FAKED_KEYCODES.add(keycode)
-                    xtest.fake_input(self._display, event.evtype, keycode)
-                    _HELD_KEYCODES.add(keycode)
-        else:
-            if keycode in _HELD_KEYCODES:
-                xtest.fake_input(self._display, event.evtype, keycode)
-                _HELD_KEYCODES.remove(keycode)
-
         if key is None:
             # Not a supported key, ignore...
             return
@@ -276,35 +260,43 @@ class KeyboardCapture(XEventLoop):
             for deviceid in self._devices
         ])
         suppressed_keys = self._suppressed_keys
-        self._grabbed_keyboard = False
         self._suppressed_keys = set()
         self.suppress_keyboard(suppressed_keys)
         super().start()
 
     def cancel(self):
         self.suppress_keyboard()
-        if self._grabbed_keyboard:
-            for deviceid in self._devices:
-                # self._window.xinput_ungrab_device(deviceid, X.CurrentTime)
-                xinput.ungrab_device(self._window, deviceid, X.CurrentTime)
-            self._grabbed_keyboard = False
-            self._display.sync()
         super().cancel()
 
+    def _grab_key(self, keycode):
+        for deviceid in self._devices:
+            self._window.xinput_grab_keycode(deviceid,
+                                             X.CurrentTime,
+                                             keycode,
+                                             xinput.GrabModeAsync,
+                                             xinput.GrabModeAsync,
+                                             True,
+                                             XINPUT_EVENT_MASK,
+                                             (0, X.Mod2Mask))
+
+    def _ungrab_key(self, keycode):
+        for deviceid in self._devices:
+            self._window.xinput_ungrab_keycode(deviceid,
+                                               keycode,
+                                               (0, X.Mod2Mask))
+
     def suppress_keyboard(self, suppressed_keys=()):
-        # Done by suppressing the whole keyboard, then send non-suppressed keys
-        # using xtest.fake_input.
         suppressed_keys = set(suppressed_keys)
         if self._suppressed_keys == suppressed_keys:
             return
-        if suppressed_keys and not self._grabbed_keyboard:
-            for deviceid in self._devices:
-                self._window.xinput_grab_device(
-                        deviceid, X.CurrentTime, xinput.GrabModeAsync,
-                        xinput.GrabModeAsync, True, XINPUT_EVENT_MASK)
-            self._grabbed_keyboard = True
-            self._display.sync()
-        self._suppressed_keys = suppressed_keys
+        for key in self._suppressed_keys - suppressed_keys:
+            self._ungrab_key(KEY_TO_KEYCODE[key])
+            self._suppressed_keys.remove(key)
+        for key in suppressed_keys - self._suppressed_keys:
+            self._grab_key(KEY_TO_KEYCODE[key])
+            self._suppressed_keys.add(key)
+        assert self._suppressed_keys == suppressed_keys
+        self._display.sync()
 
 
 # Keysym to Unicode conversion table.
