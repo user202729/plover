@@ -1136,7 +1136,7 @@ def keysym_to_string(keysym):
     return chr(code)
 
 
-class KeyboardEmulation:
+class KeyboardEmulation(XEventLoop):
     """Emulate keyboard events."""
 
     class Mapping:
@@ -1163,9 +1163,31 @@ class KeyboardEmulation:
 
     def __init__(self):
         """Prepare to emulate keyboard events."""
-        self._display = display.Display()
+        super().__init__(name='emulation')
         self._update_keymap()
+        self._update_modifiers()
+        self._self_change = []
+        # List of keycodes of keyboard mapping changes created by this KeyboardEmulation object
+        super().start()
 
+    def _on_event(self, event):
+        if event.type == X.MappingNotify:
+            if event.request == X.MappingKeyboard:
+                if event.count == 1:
+                    try:
+                        self._self_change.remove(event.first_keycode)
+                        # the operation above is atomic and will not cause a race condition
+                        # with the append to `self._self_change` below
+                        # see http://effbot.org/pyfaq/what-kinds-of-global-value-mutation-are-thread-safe.htm
+                        return
+                    except ValueError:
+                        pass
+                self._update_keymap()
+
+            elif event.request == X.MappingModifier:
+                self._update_modifiers()
+
+    @with_display_lock
     def _update_keymap(self):
         '''Analyse keymap, build a mapping of keysym to (keycode + modifiers),
         and find unused keycodes that can be used for unmapped keysyms.
@@ -1221,9 +1243,13 @@ class KeyboardEmulation:
         self._backspace_mapping = self._get_mapping(backspace_keysym)
         assert self._backspace_mapping is not None
         assert self._backspace_mapping.custom_mapping is None
+
+    @with_display_lock
+    def _update_modifiers(self):
         # Get modifier mapping.
         self.modifier_mapping = self._display.get_modifier_mapping()
 
+    @with_display_lock
     def send_backspaces(self, number_of_backspaces):
         """Emulate the given number of backspaces.
 
@@ -1239,6 +1265,7 @@ class KeyboardEmulation:
                                self._backspace_mapping.modifiers)
         self._display.sync()
 
+    @with_display_lock
     def send_string(self, s):
         """Emulate the given string.
 
@@ -1258,6 +1285,7 @@ class KeyboardEmulation:
                                mapping.modifiers)
         self._display.sync()
 
+    @with_display_lock
     def send_key_combination(self, combo_string):
         """Emulate a sequence of key combinations.
 
@@ -1358,6 +1386,7 @@ class KeyboardEmulation:
             keysym_index = mapping.custom_mapping.index(previous_keysym)
             # Update X11 keymap.
             mapping.custom_mapping[keysym_index] = keysym
+            self._self_change.append(mapping.keycode)
             self._display.change_keyboard_mapping(mapping.keycode, [mapping.custom_mapping])
             # Update our keymap.
             if previous_keysym in self._keymap:
