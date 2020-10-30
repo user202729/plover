@@ -231,8 +231,15 @@ class AddTranslationWidget(QWidget, Ui_AddTranslationWidget):
         self._selected_dictionary = self._dictionaries[index].path
 
     def _format_label(self, fmt, strokes, translation=None, filename=None):
+        import sys, os.path
+        sys.path.append(os.path.expanduser("~/plover"))
+        try:
+            from stenoToPseudo import stenoToPseudo as stroke_preprocess  # taken from https://github.com/Achim63/plover-lookup-enhanced/blob/3b3d82dcb4da9098e276139321b12f889a1bfe9f/lookup5.py
+        except ImportError:
+            stroke_preprocess = lambda x: x
+
         if strokes:
-            strokes = ', '.join(self._special_fmt % html_escape('/'.join(s))
+            strokes = ', '.join(self._special_fmt % html_escape(stroke_preprocess('/'.join(s)))
                                 for s in sort_steno_strokes(strokes))
         if translation:
             translation = self._special_fmt_bold % html_escape(escape_translation(translation))
