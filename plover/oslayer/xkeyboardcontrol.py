@@ -1290,14 +1290,24 @@ class KeyboardEmulation(XEventLoop):
         """
         for char in s:
             keysym = uchr_to_keysym(char)
-            mapping = self._get_mapping(keysym)
+            mapping = self._get_mapping(keysym, automatically_map=False)
+            mapping_changed = False
             if mapping is None:
-                continue
+                mapping = self._get_mapping(keysym, automatically_map=True)
+                if mapping is None:
+                    continue
+                if self._time_between_key_presses != 0:
+                    self._display.sync()
+                    sleep(self._time_between_key_presses / 2000)
+                mapping_changed = True
             self._send_keycode(mapping.keycode,
                                mapping.modifiers)
             if self._time_between_key_presses != 0:
                 self._display.sync()
-                sleep(self._time_between_key_presses / 1000)
+                if mapping_changed:
+                    sleep(self._time_between_key_presses / 2000)
+                else:
+                    sleep(self._time_between_key_presses / 1000)
         self._display.sync()
 
     @with_display_lock
