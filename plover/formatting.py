@@ -470,7 +470,7 @@ class TextFormatter:
             replaced = len(action.prev_replace)
             appended = len(self.appended_text)
             if replaced > appended:
-                assert action.prev_replace.endswith(self.appended_text)
+                assert action.prev_replace.endswith(self.appended_text), (action.prev_replace, self.appended_text)
                 replaced -= appended
                 if replaced > len(self.replaced_text):
                     assert action.prev_replace.endswith(self.replaced_text)
