@@ -438,7 +438,7 @@ class KeyboardCapture(threading.Thread, KeyboardCaptureBase):
 
 class KeyboardEmulation(KeyboardEmulationBase):
 
-    def __init__(self, params):
+    def __init__(self, params=None):
         assert not params
         self.keyboard_layout = KeyboardLayout()
         self._key_combo = KeyCombo(self.keyboard_layout.keyname_to_vk.get)

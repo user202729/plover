@@ -23,7 +23,7 @@ class KeyboardEmulationBase:
     def get_option_info(cls):
         return {}
 
-    def __init__(self, params):
+    def __init__(self, params=None):
         pass
 
     def start(self):

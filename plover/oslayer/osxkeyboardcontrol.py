@@ -302,7 +302,7 @@ class KeyboardEmulation(KeyboardEmulationBase):
 
     RAW_PRESS, STRING_PRESS = range(2)
 
-    def __init__(self, params):
+    def __init__(self, params=None):
         assert not params
         self._layout = KeyboardLayout()
         self._key_combo = KeyCombo(self._name_to_code)

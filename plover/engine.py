@@ -93,7 +93,8 @@ class StenoEngine:
     quit
     '''.split()
 
-    def __init__(self, config):
+    def __init__(self, config, keyboard_emulation=None):
+        self._warn_compatibility_keyboard_emulation = keyboard_emulation is not None
         self._config = config
         self._is_running = False
         self._queue = Queue()
@@ -132,6 +133,9 @@ class StenoEngine:
             self._queue.put((func, args, kwargs))
 
     def run(self):
+        if self._warn_compatibility_keyboard_emulation:
+            log.warning("Compatibility mode used -- please update the GUI plugin")
+
         while True:
             func, args, kwargs = self._queue.get()
             try:
