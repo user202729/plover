@@ -1174,6 +1174,7 @@ class KeyboardEmulation(XEventLoop):
         super().start()
 
     def _on_event(self, event):
+        assert self._display_lock.locked()
         if event.type == X.MappingNotify:
             if event.request == X.MappingKeyboard:
                 if event.count == 1:
@@ -1190,11 +1191,11 @@ class KeyboardEmulation(XEventLoop):
             elif event.request == X.MappingModifier:
                 self._update_modifiers()
 
-    @with_display_lock
     def _update_keymap(self):
         '''Analyse keymap, build a mapping of keysym to (keycode + modifiers),
         and find unused keycodes that can be used for unmapped keysyms.
         '''
+        assert self._display_lock.locked() or not self.is_alive()
         self._keymap = {}
         self._custom_mappings_queue = []
         # Analyse X11 keymap.
@@ -1247,9 +1248,9 @@ class KeyboardEmulation(XEventLoop):
         assert self._backspace_mapping is not None
         assert self._backspace_mapping.custom_mapping is None
 
-    @with_display_lock
     def _update_modifiers(self):
         # Get modifier mapping.
+        assert self._display_lock.locked() or not self.is_alive()
         self.modifier_mapping = self._display.get_modifier_mapping()
 
     @with_display_lock
@@ -1374,6 +1375,7 @@ class KeyboardEmulation(XEventLoop):
         keysym -- A key symbol.
 
         """
+        assert self._display_lock.locked() or not self.is_alive()
         mapping = self._keymap.get(keysym)
         if mapping is None:
             # Automatically map?
