@@ -92,10 +92,8 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
         self._engine = engine
         self._states = []
         self._updating = False
-        self._config_dictionaries = {}
+        self._configured = False
         self._loaded_dictionaries = {}
-        self._reverse_order = False
-        self._show_basename_only = False
         for action in (
             self.action_Undo,
             self.action_EditDictionaries,
@@ -168,7 +166,7 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
                 record=False, save=False,
             )
         if update_kwargs:
-            self._update_dictionaries(**update_kwargs)
+            self._update_dictionaries(**update_kwargs, keep_selection=self._configured)
 
     def _update_dictionaries(self, config_dictionaries=None, loaded_dictionaries=None,
                              reverse_order=None, record=True, save=True,
@@ -179,11 +177,13 @@ class DictionariesWidget(QWidget, Ui_DictionariesWidget):
             show_basename_only = self._show_basename_only
         if config_dictionaries is None:
             config_dictionaries = self._config_dictionaries
-        if config_dictionaries == self._config_dictionaries and \
+        if self._configured and \
+           config_dictionaries == self._config_dictionaries and \
            reverse_order == self._reverse_order and \
            show_basename_only == self._show_basename_only and \
            loaded_dictionaries is None:
             return
+        self._configured = True
         if save:
             self._engine.config = { 'dictionaries': config_dictionaries }
         if record:

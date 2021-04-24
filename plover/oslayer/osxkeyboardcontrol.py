@@ -306,7 +306,6 @@ class KeyboardEmulation:
 
     def __init__(self):
         self._layout = KeyboardLayout()
-        self._time_between_key_presses = 0
 
     def set_time_between_key_presses(self, ms):
         self._time_between_key_presses = ms

@@ -20,7 +20,6 @@ class AddTranslationDialog(Tool, Ui_AddTranslationDialog):
         self.setupUi(self)
         self.add_translation.select_dictionary(dictionary_path)
         engine.signal_connect('config_changed', self.on_config_changed)
-        self.on_config_changed(engine.config)
         self.installEventFilter(self)
         self.restore_state()
         self.finished.connect(self.save_state)

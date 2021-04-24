@@ -143,7 +143,6 @@ class MainWindow(QMainWindow, Ui_MainWindow, WindowState):
             self.on_configure()
         # Apply configuration settings.
         config = self._engine.config
-        self._update_machine(config['machine_type'])
         self._configured = False
         self.dictionaries.on_config_changed(config)
         self.set_visible(not config['start_minimized'])

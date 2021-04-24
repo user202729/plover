@@ -1169,7 +1169,6 @@ class KeyboardEmulation(XEventLoop):
         """Prepare to emulate keyboard events."""
         super().__init__(name='emulation')
         self._update_keymap()
-        self._time_between_key_presses = 0
         self._update_modifiers()
         self._self_change = []
         # List of keycodes of keyboard mapping changes created by this KeyboardEmulation object

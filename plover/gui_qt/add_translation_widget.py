@@ -31,7 +31,6 @@ class AddTranslationWidget(QWidget, Ui_AddTranslationWidget):
         engine = QApplication.instance().engine
         self._engine = engine
         self._dictionaries = []
-        self._reverse_order = False
         self._selected_dictionary = None
         engine.signal_connect('config_changed', self.on_config_changed)
         self.on_config_changed(engine.config)
