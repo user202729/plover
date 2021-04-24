@@ -21,6 +21,15 @@ def _load_wordlist(filename, assets_dir):
             break
     else:
         return {}
+
+    extension = os.path.splitext(path)[1].lower()
+    if extension == ".pkl":
+        import pickle
+        return pickle.load(open(path, "rb"))
+    elif extension == ".json":
+        import json
+        return json.load(open(path, "r", encoding="utf-8"))
+
     words = {}
     with open(path, encoding='utf-8') as f:
         pairs = [word.strip().rsplit(' ', 1) for word in f]

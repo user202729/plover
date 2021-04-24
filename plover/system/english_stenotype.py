@@ -145,7 +145,7 @@ ORTHOGRAPHY_RULES_ALIASES = {
     'ability': 'ibility',
 }
 
-ORTHOGRAPHY_WORDLIST = 'american_english_words.txt'
+ORTHOGRAPHY_WORDLIST = 'american_english_words.pkl'
 
 KEYMAPS = {
     'Gemini PR': {
