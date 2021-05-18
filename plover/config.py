@@ -40,16 +40,30 @@ SYSTEM_KEYMAP_OPTION = 'keymap[%s]'
 
 
 class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
+    """
+    Represents the configuration for one dictionary.
+
+    Attributes:
+        path: The fully qualified path to the dictionary file.
+        enabled: Whether the dictionary is enabled.
+    """
+
+    path: str
+    enabled: bool
 
     def __new__(cls, path, enabled=True):
-        return super().__new__(cls, expand_path(path), enabled)
+        return super().__new_(cls, expand_path(path), enabled)
 
     @property
-    def short_path(self):
+    def short_path(self)->str:
+        """
+        The shortened path to the dictionary file. This is automatically
+        calculated from `path`.
+        """
         return shorten_path(self.path)
 
     @property
-    def basename(self):
+    def basename(self)->str:
         return os.path.basename(self.path)
 
     def to_dict(self):
@@ -75,6 +89,11 @@ ConfigOption = namedtuple('ConfigOption', '''
                           ''')
 
 class InvalidConfigOption(ValueError):
+    """
+    An exception raised when a configuration option has been set to an invalid
+    value, such as one of the wrong type. `fixed_value` is the value that
+    Plover is falling back on if `raw_value` can't be parsed correctly.
+    """
 
     def __init__(self, raw_value, fixed_value, message=None):
         super().__init__(raw_value)
@@ -330,10 +349,16 @@ class Config:
                 raise InvalidConfigurationError(str(e))
 
     def clear(self):
+        """
+        Clears the configuration and returns to the base state.
+        """
         self._config = configparser.RawConfigParser()
         self._cache.clear()
 
     def save(self):
+        """
+        Writes the current state of the configuration to the configuration file.
+        """
         with resource_update(self.path) as temp_path:
             with open(temp_path, mode='w', encoding='utf-8') as fp:
                 self._config.write(fp)
@@ -384,6 +409,10 @@ class Config:
         return key, opt
 
     def __getitem__(self, key):
+        """
+        Returns the value of the specified `key` in the cache, or in the
+        full configuration if not available.
+        """
         key, opt = self._lookup(key)
         if key in self._cache:
             return self._cache[key]
@@ -398,15 +427,25 @@ class Config:
         return value
 
     def __setitem__(self, key, value):
+        """
+        Sets the property `key` in the configuration to the specified value.
+        """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)
         opt.setter(self, key, value)
         self._cache[key] = value
 
     def as_dict(self):
+        """
+        Returns the ``dict`` representation of the current state of the
+        configuration.
+        """
         return {opt.name: self[opt.name] for opt in self._OPTIONS.values()}
 
     def update(self, **kwargs):
+        """
+        Update the cache to reflect the contents of the full configuration.
+        """
         new_settings = []
         new_config = ChainMap({}, self)
         for opt in self._OPTIONS.values():
