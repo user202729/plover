@@ -113,14 +113,14 @@ class StenotypeBase:
         '''
         pass
 
-    def suppress_last_stroke(self, send_backspaces: Callable[int, None])->None:
+    def suppress_last_stroke(self, send_backspaces):
         '''Suppress the last stroke key events after the fact.
 
         This is only of use for the keyboard machine,
         and the engine is resumed with a command stroke.
 
         Arguments:
-            send_backspaces: The function to use to send backspaces.
+            send_backspaces (Callable[[int], NoneType]): The function to use to send backspaces.
         '''
         pass
 

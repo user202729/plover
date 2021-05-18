@@ -102,7 +102,7 @@ class Keyboard(StenotypeBase):
         self._is_suppressed = enabled
         self._suppress()
 
-    def suppress_last_stroke(self, send_backspaces: Callable[int, None])->None:
+    def suppress_last_stroke(self, send_backspaces):
         send_backspaces(self._last_stroke_key_down_count)
         self._last_stroke_key_down_count = 0
 
