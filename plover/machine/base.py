@@ -8,13 +8,17 @@
 
 import binascii
 import threading
-from typing import Callable
+from typing import Callable, Set, Literal, Sequence
 
 import serial
 
 from plover import _, log
 from plover.machine.keymap import Keymap
 from plover.misc import boolean
+
+
+StenoKeys = Set[str]
+StenoKeysCallback = Callable[StenoKeys, None]
 
 
 # i18n: Machine state.
@@ -27,8 +31,20 @@ STATE_RUNNING = _('connected')
 STATE_ERROR = _('disconnected')
 
 
+#State = Literal[STATE_STOPPED, STATE_INITIALIZING, STATE_RUNNING, STATE_ERROR]
+State = str
+StateCallback = Callable[State, None]
+
+
 class StenotypeBase:
-    """The base class for all Stenotype classes."""
+    """The base class for all Stenotype classes.
+
+    Attributes:
+        keymap:
+        state:
+        stroke_subscribers:
+        state_subscribers:
+    """
 
     # Layout of physical keys.
     KEYS_LAYOUT = ''
@@ -41,57 +57,55 @@ class StenotypeBase:
     def __init__(self):
         # Setup default keymap with no translation of keys.
         keys = self.get_keys()
-        self.keymap = Keymap(keys, keys)
+        self.keymap: Keymap = Keymap(keys, keys)
         self.keymap.set_mappings(zip(keys, keys))
-        self.stroke_subscribers = []
-        self.state_subscribers = []
-        self.state = STATE_STOPPED
+        self.stroke_subscribers: List[StenoKeysCallback] = []
+        self.state_subscribers: List[StateCallback] = []
+        self.state: State = STATE_STOPPED
 
-    def set_keymap(self, keymap):
+    def set_keymap(self, keymap)->None:
         """Setup machine keymap."""
         self.keymap = keymap
 
-    def start_capture(self):
+    def start_capture(self)->None:
         """Begin listening for output from the stenotype machine."""
         pass
 
-    def stop_capture(self):
+    def stop_capture(self)->None:
         """Stop listening for output from the stenotype machine."""
         pass
 
-    def add_stroke_callback(self, callback):
+    def add_stroke_callback(self, callback: StenoKeysCallback)->None:
         """Subscribe to output from the stenotype machine.
 
-        Argument:
-
-        callback -- The function to call whenever there is output from
-        the stenotype machine and output is being captured.
+        Arguments:
+            callback: The function to call whenever there is output from
+            the stenotype machine and output is being captured.
 
         """
         self.stroke_subscribers.append(callback)
 
-    def remove_stroke_callback(self, callback):
+    def remove_stroke_callback(self, callback: StenoKeysCallback)->None:
         """Unsubscribe from output from the stenotype machine.
 
-        Argument:
-
-        callback -- A function that was previously subscribed.
+        Arguments:
+            callback: A function that was previously subscribed.
 
         """
         self.stroke_subscribers.remove(callback)
 
-    def add_state_callback(self, callback):
+    def add_state_callback(self, callback: StateCallback)->None:
         self.state_subscribers.append(callback)
 
-    def remove_state_callback(self, callback):
+    def remove_state_callback(self, callback: StateCallback)->None:
         self.state_subscribers.remove(callback)
 
-    def _notify(self, steno_keys):
+    def _notify(self, steno_keys: StenoKeys)->None:
         """Invoke the callback of each subscriber with the given argument."""
         for callback in self.stroke_subscribers:
             callback(steno_keys)
 
-    def set_suppression(self, enabled):
+    def set_suppression(self, enabled: bool)->None:
         '''Enable keyboard suppression.
 
         This is only of use for the keyboard machine,
@@ -110,25 +124,25 @@ class StenotypeBase:
         '''
         pass
 
-    def _set_state(self, state):
+    def _set_state(self, state: State)->None:
         self.state = state
         for callback in self.state_subscribers:
             callback(state)
 
-    def _stopped(self):
+    def _stopped(self)->None:
         self._set_state(STATE_STOPPED)
 
-    def _initializing(self):
+    def _initializing(self)->None:
         self._set_state(STATE_INITIALIZING)
 
-    def _ready(self):
+    def _ready(self)->None:
         self._set_state(STATE_RUNNING)
 
     def _error(self):
         self._set_state(STATE_ERROR)
 
     @classmethod
-    def get_actions(cls):
+    def get_actions(cls)->Sequence[str]:
         """List of supported actions to map to."""
         return cls.ACTIONS
 

@@ -1,7 +1,10 @@
 # Copyright (c) 2010-2011 Joshua Harlan Lifton.
 # See LICENSE.txt for details.
 
-"""Configuration management."""
+"""
+This modules handles reading and writing Plover's configuration files, as well
+as updating the configuration on-the-fly while Plover is running.
+"""
 
 from collections import ChainMap, namedtuple, OrderedDict
 import configparser
@@ -300,6 +303,11 @@ def dictionaries_option():
 
 
 class Config:
+    
+    """
+    An object containing the entire Plover configuration. The config object
+    maintains a cache for any changes that are made while Plover is running.
+    """
 
     def __init__(self, path=None):
         self._config = None
@@ -309,6 +317,11 @@ class Config:
         self.clear()
 
     def load(self):
+        """
+        Reads and parses the configuration from the configuration file.
+        Raises an [`InvalidConfigurationError`][plover.exception.InvalidConfigurationError]
+        if the configuration could not be parsed correctly.
+        """
         self.clear()
         with open(self.path, encoding='utf-8') as fp:
             try:

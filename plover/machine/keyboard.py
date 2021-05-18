@@ -4,7 +4,7 @@
 
 "For use with a computer keyboard (preferably NKRO) as a steno machine."
 
-from typing import Callable
+from typing import Callable, Dict, Any
 
 from plover import _
 from plover.machine.base import StenotypeBase
@@ -23,20 +23,27 @@ class Keyboard(StenotypeBase):
     stenotype interface: [`start_capture`][plover.machine.keyboard.Keyboard.start_capture], stop_capture, and
     add_callback.
 
+    Attributes:
+        _keyboard_capture:
+
     """
 
     KEYS_LAYOUT = KeyboardCapture.SUPPORTED_KEYS_LAYOUT
     ACTIONS = ('arpeggiate',)
 
-    def __init__(self, params):
-        """Monitor the keyboard's events."""
+    def __init__(self, params: Dict[str, Any])->None:
+        """Monitor the keyboard's events.
+
+        Arguments:
+            params: Keyboard configuration parameters.
+        """
         super().__init__()
         # Warning: arpeggiate currently doesn't work with first-up chord send
         self._arpeggiate = params['arpeggiate']
         self._is_suppressed = False
         # Currently held keys.
         self._down_keys = set()
-        self._keyboard_capture = None
+        self._keyboard_capture: KeyboardCapture = None
         # Number of key down events since the last recognized chord.
         self._last_stroke_key_down_count = 0
         self._stroke_key_down_count = 0
@@ -72,7 +79,7 @@ class Keyboard(StenotypeBase):
         """Begin listening for output from the stenotype machine."""
         self._initializing()
         try:
-            self._keyboard_capture: KeyboardCapture = KeyboardCapture()
+            self._keyboard_capture = KeyboardCapture()
             self._keyboard_capture.key_down = self._key_down
             self._keyboard_capture.key_up = self._key_up
             self._suppress()
@@ -123,7 +130,7 @@ class Keyboard(StenotypeBase):
         self._ignore = True
 
     @classmethod
-    def get_option_info(cls):
+    def get_option_info(cls)->Dict[str, Any]:
         return {
             'arpeggiate': (False, boolean),
         }

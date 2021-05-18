@@ -1,6 +1,13 @@
 site_name: Plover
 theme:
-  name: "readthedocs"
+  #name: "readthedocs"
+  name: "material"
+  features:
+    #- navigation.tracking
+    - navigation.instant
+markdown_extensions:
+  - toc:
+      permalink: true
 plugins:
   - search
   - mkdocstrings:
