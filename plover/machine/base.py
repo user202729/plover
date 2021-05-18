@@ -8,6 +8,7 @@
 
 import binascii
 import threading
+from typing import Callable
 
 import serial
 
@@ -98,15 +99,14 @@ class StenotypeBase:
         '''
         pass
 
-    def suppress_last_stroke(self, send_backspaces):
+    def suppress_last_stroke(self, send_backspaces: Callable[int, None])->None:
         '''Suppress the last stroke key events after the fact.
 
         This is only of use for the keyboard machine,
         and the engine is resumed with a command stroke.
 
-        Argument:
-
-        send_backspaces -- The function to use to send backspaces.
+        Arguments:
+            send_backspaces: The function to use to send backspaces.
         '''
         pass
 

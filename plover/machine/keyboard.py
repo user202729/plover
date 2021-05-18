@@ -4,6 +4,8 @@
 
 "For use with a computer keyboard (preferably NKRO) as a steno machine."
 
+from typing import Callable
+
 from plover import _
 from plover.machine.base import StenotypeBase
 from plover.misc import boolean
@@ -18,7 +20,7 @@ class Keyboard(StenotypeBase):
     """Standard stenotype interface for a computer keyboard.
 
     This class implements the three methods necessary for a standard
-    stenotype interface: start_capture, stop_capture, and
+    stenotype interface: [`start_capture`][plover.machine.keyboard.Keyboard.start_capture], stop_capture, and
     add_callback.
 
     """
@@ -70,7 +72,7 @@ class Keyboard(StenotypeBase):
         """Begin listening for output from the stenotype machine."""
         self._initializing()
         try:
-            self._keyboard_capture = KeyboardCapture()
+            self._keyboard_capture: KeyboardCapture = KeyboardCapture()
             self._keyboard_capture.key_down = self._key_down
             self._keyboard_capture.key_up = self._key_up
             self._suppress()
@@ -93,7 +95,7 @@ class Keyboard(StenotypeBase):
         self._is_suppressed = enabled
         self._suppress()
 
-    def suppress_last_stroke(self, send_backspaces):
+    def suppress_last_stroke(self, send_backspaces: Callable[int, None])->None:
         send_backspaces(self._last_stroke_key_down_count)
         self._last_stroke_key_down_count = 0
 

@@ -1,0 +1,8 @@
+site_name: Plover
+theme:
+  name: "readthedocs"
+plugins:
+  - search
+  - mkdocstrings:
+      watch:
+        - plover
