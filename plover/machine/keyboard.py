@@ -4,7 +4,7 @@
 
 "For use with a computer keyboard (preferably NKRO) as a steno machine."
 
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Optional
 
 from plover import _
 from plover.machine.base import StenotypeBase
@@ -24,7 +24,7 @@ class Keyboard(StenotypeBase):
     add_callback.
 
     Attributes:
-        _keyboard_capture:
+        _keyboard_capture (Optional[KeyboardCapture]):
 
     """
 
@@ -43,7 +43,7 @@ class Keyboard(StenotypeBase):
         self._is_suppressed = False
         # Currently held keys.
         self._down_keys = set()
-        self._keyboard_capture: KeyboardCapture = None
+        self._keyboard_capture = None
         # Number of key down events since the last recognized chord.
         self._last_stroke_key_down_count = 0
         self._stroke_key_down_count = 0
