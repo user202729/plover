@@ -7,17 +7,20 @@ from PyQt5.QtCore import (
     QTimer,
     QTranslator,
     Qt,
+    pyqtRemoveInputHook,
 )
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtGui import QPalette, QColor
 
-from plover import log
-from plover import __name__ as __software_name__
-from plover import __version__
+from plover import _, __name__ as __software_name__, __version__, log
 from plover.oslayer.keyboardcontrol import KeyboardEmulation
 
 from plover.gui_qt.engine import Engine
-from plover.gui_qt.i18n import get_language, install_gettext
+
+
+# Disable pyqtRemoveInputHook to avoid getting
+# spammed when using the debugger.
+pyqtRemoveInputHook()
 
 
 class Application:
@@ -58,9 +61,10 @@ class Application:
         self._app.setPalette(palette)
 
         # Enable localization of standard Qt controls.
+        log.info('setting language to: %s', _.lang)
         self._translator = QTranslator()
         translations_dir = QLibraryInfo.location(QLibraryInfo.TranslationsPath)
-        self._translator.load('qtbase_' + get_language(), translations_dir)
+        self._translator.load('qtbase_' + _.lang, translations_dir)
         self._app.installTranslator(self._translator)
 
         QApplication.setQuitOnLastWindowClosed(False)
@@ -104,7 +108,6 @@ def default_excepthook(*exc_info):
 
 def main(config):
     # Setup internationalization support.
-    install_gettext()
     use_qt_notifications = not log.has_platform_handler()
     # Log GUI exceptions that make it back to the event loop.
     if sys.excepthook is sys.__excepthook__:

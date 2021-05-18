@@ -18,7 +18,7 @@ from plover.translation import escape_translation, unescape_translation
 from plover.misc import expand_path, shorten_path
 from plover.steno import normalize_steno
 
-from plover.gui_qt.dictionary_editor_ui import Ui_DictionaryEditor
+from plover.gui_qt.dictionary_editor_ui import _, Ui_DictionaryEditor
 from plover.gui_qt.utils import ToolBar, WindowState
 
 
@@ -159,10 +159,13 @@ class DictionaryItemModel(QAbstractTableModel):
         if orientation != Qt.Horizontal or role != Qt.DisplayRole:
             return None
         if section == _COL_STENO:
+            # i18n: Widget: “DictionaryEditor”.
             return _('Strokes')
         if section == _COL_TRANS:
+            # i18n: Widget: “DictionaryEditor”.
             return _('Translation')
         if section == _COL_DICT:
+            # i18n: Widget: “DictionaryEditor”.
             return _('Dictionary')
 
     def data(self, index, role):
@@ -224,11 +227,10 @@ class DictionaryItemModel(QAbstractTableModel):
                     break
             if dictionary == old_item.dictionary:
                 return False
-        if (old_item.dictionary, old_item.strokes) != (dictionary, strokes):
-            try:
-                del old_item.dictionary[old_item.strokes]
-            except KeyError:
-                pass
+        try:
+            del old_item.dictionary[old_item.strokes]
+        except KeyError:
+            pass
         if not old_item.strokes and not old_item.translation:
             # Merge operations when editing a newly added row.
             if self._operations and self._operations[-1] == [(None, old_item)]:
