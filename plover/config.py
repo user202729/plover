@@ -52,7 +52,7 @@ class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
     enabled: bool
 
     def __new__(cls, path, enabled=True):
-        return super().__new_(cls, expand_path(path), enabled)
+        return super().__new__(cls, expand_path(path), enabled)
 
     @property
     def short_path(self)->str:
