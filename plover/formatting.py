@@ -24,6 +24,15 @@ Case = Enum('case', ((c, c.lower()) for c in '''
                      UPPER
                      UPPER_FIRST_WORD
                      '''.split()))
+"""
+Attributes:
+    CAP_FIRST_WORD ():
+    LOWER ():
+    LOWER_FIRST_CHAR ():
+    TITLE ():
+    UPPER ():
+    UPPER_FIRST_WORD ():
+"""
 
 SPACE = ' '
 
@@ -149,11 +158,14 @@ WORD_RX = re.compile(r'(?:\d+(?:[.,]\d+)+|[\'\w]+[-\w\']*|[^\w\s]+)\s*', re.UNIC
 class RetroFormatter:
     """Helper for iterating over the result of previous translations.
 
-    Support iterating over previous actions, text, fragments of text, or words:
+    Support iterating over previous actions, text, fragments of text, or words::
 
-    text     : "Something something, blah! Blah: 45.8... (blah: foo42)   "
-    fragments: "__________-----------______------________-------_________"
-    words    : "__________---------__----__----__----____-____--_____----"
+        text     : "Something something, blah! Blah: 45.8... (blah: foo42)   "
+        fragments: "__________-----------______------________-------_________"
+        words    : "__________---------__----__----__----____-____--_____----"
+
+    Attributes:
+        previous_translations ():
 
     """
 
@@ -227,7 +239,14 @@ class RetroFormatter:
                 yield word.rstrip() if strip else word
 
     def last_words(self, count=1, strip=False, rx=WORD_RX):
-        """Return the last <count> words."""
+        # type: (int, bool, re.Pattern) -> List[str]
+        """Return the last <count> words.
+
+        Arguments:
+            count:
+            strip:
+            rx: The regular expression to match ???
+        """
         word_list = []
         for w in self.iter_last_words(strip=strip, rx=rx):
             word_list.insert(0, w)
@@ -236,6 +255,7 @@ class RetroFormatter:
         return word_list
 
     def last_text(self, size):
+        # type: (int) -> str
         """Return the last <size> characters."""
         text = ''
         if not size:
@@ -253,6 +273,11 @@ class _Context(RetroFormatter):
     Keep tracks of previous actions as well as newly translated actions,
     offer helpers for creating new actions and convenient access to past
     actions/text/words.
+
+    Attributes:
+        previous_translations ():
+        last_action ():
+        translated_actions (List[_Action]):  (TODO check if type annotation is correct)
     """
 
     def __init__(self, previous_translations, last_action):
@@ -270,6 +295,7 @@ class _Context(RetroFormatter):
         return self.last_action.copy_state()
 
     def translated(self, action):
+        # type: (_Action) -> None
         """Mark an action as translated."""
         assert action is not None
         self.translated_actions.append(action)
@@ -291,15 +317,17 @@ class Formatter:
     The output class can define the following functions, which will be called
     if available:
 
-    send_backspaces -- Takes a number and deletes back that many characters.
+    send_backspaces: Takes a number and deletes back that many characters.
 
-    send_string -- Takes a string and prints it verbatim.
+    send_string: Takes a string and prints it verbatim.
 
-    send_key_combination -- Takes a string the dictionary format for specifying
+    send_key_combination: Takes a string the dictionary format for specifying
     key combinations and issues them.
 
-    send_engine_command -- Takes a string which names the special command to
+    send_engine_command: Takes a string which names the special command to
     execute.
+
+    TODO -> output
 
     """
 
@@ -319,10 +347,9 @@ class Formatter:
         """Add a listener for translation outputs.
 
         Arguments:
-
-        callback -- A function that takes: a list of translations to undo, a
-        list of new translations to render, and a translation that is the
-        context for the new translations.
+            callback: A function that takes: a list of translations to undo, a
+                list of new translations to render, and a translation that is the
+                context for the new translations.
 
         """
         self._listeners.add(callback)
@@ -348,16 +375,16 @@ class Formatter:
 
         Arguments:
 
-        undo -- A sequence of translations that should be undone. The
-        formatting parameter of the translations will be used to undo the
-        actions that were taken, if possible.
+            undo: A sequence of translations that should be undone. The
+                formatting parameter of the translations will be used to undo the
+                actions that were taken, if possible.
 
-        do -- The new actions to format. The formatting attribute will be
-        filled in with the result.
+            do: The new actions to format. The formatting attribute will be
+                filled in with the result.
 
-        prev -- The last translation before the new actions in do. This
-        translation's formatting attribute provides the context for the new
-        rendered translations. If there is no context then this may be None.
+            prev: The last translation before the new actions in do. This
+                translation's formatting attribute provides the context for the new
+                rendered translations. If there is no context then this may be None.
 
         """
         assert undo or do
@@ -423,7 +450,15 @@ class Formatter:
 
 
 class TextFormatter:
-    """Format a series of action into text."""
+    """Format a series of action into text.
+    
+    Attributes:
+        spaces_after ():
+        replaced_text ():
+        appended_text ():
+        trailing_space ():
+
+    """
 
     def __init__(self, spaces_after):
         self.spaces_after = spaces_after
@@ -490,6 +525,10 @@ class OutputHelper:
     This class figures out the current state, compares it to the new output and
     optimizes away extra backspaces and typing.
 
+    Attributes:
+        output ():
+        before ():
+        after ():
     """
     def __init__(self, output, before_spaces_after, after_spaces_after):
         self.output = output
@@ -546,6 +585,23 @@ class _Action:
     instructions are used to render the current action and the state is used as
     context to render future translations.
 
+    Attributes:
+        DEFAULT (_Action):
+        prev_attach (str):
+        glue (str):
+        word (str):
+        upper_carry (str):
+        orthography (str):
+        next_attach (str):
+        next_case (str):
+        space_char (str):
+        case (str):
+        trailing_space (str):
+        prev_replace (str):
+        text (str):
+        combo (str):
+        command (str):
+
     """
 
     def __init__(self,
@@ -562,43 +618,43 @@ class _Action:
 
         Arguments:
 
-        prev_attach -- True if there should be no space between this and the
-                       previous action.
+            prev_attach: True if there should be no space between this and the
+                           previous action.
 
-        prev_replace -- Text that should be deleted for this action.
+            prev_replace: Text that should be deleted for this action.
 
-        glue -- True if there be no space between this and the next action if
-                the next action also has glue set to True.
+            glue: True if there be no space between this and the next action if
+                    the next action also has glue set to True.
 
-        word -- The current root word (sans prefix, and un-cased). This is
-                context for future actions whose behavior depends on it such as
-                suffixes.
+            word: The current root word (sans prefix, and un-cased). This is
+                    context for future actions whose behavior depends on it such as
+                    suffixes.
 
-        upper_carry -- True if we are uppercasing the current word.
+            upper_carry: True if we are uppercasing the current word.
 
-        othography -- True if orthography rules should be applies when adding
-                      a suffix to this action.
+            othography: True if orthography rules should be applies when adding
+                          a suffix to this action.
 
-        space_char -- this character will replace spaces after all other
-        formatting has been applied
+            space_char: this character will replace spaces after all other
+            formatting has been applied
 
-        case -- an integer to determine which case to output after formatting
+            case: an integer to determine which case to output after formatting
 
-        text -- The text that should be rendered for this action.
+            text: The text that should be rendered for this action.
 
-        trailing_space -- This the space that would be added when rendering
-                          up to this action with space placement set to
-                          'after output'.
+            trailing_space: This the space that would be added when rendering
+                              up to this action with space placement set to
+                              'after output'.
 
-        combo -- The key combo, in plover's key combo language, that should be
-                 executed for this action.
+            combo: The key combo, in plover's key combo language, that should be
+                     executed for this action.
 
-        command -- The command that should be executed for this action.
+            command: The command that should be executed for this action.
 
-        next_attach -- True if there should be no space between this and the next
-                       action.
+            next_attach: True if there should be no space between this and the next
+                           action.
 
-        next_case -- Case to apply to next action: capitalize/lower/upper...
+            next_case: Case to apply to next action: capitalize/lower/upper...
 
         """
         # State variables
@@ -667,9 +723,9 @@ def _translation_to_actions(translation, ctx):
 
     Arguments:
 
-    translation -- A string with the translation to render.
+        translation: A string with the translation to render.
 
-    last_action -- The action in whose context this translation is formatted.
+        last_action: The action in whose context this translation is formatted.
 
     Returns: A list of actions.
 
@@ -701,9 +757,9 @@ def _raw_to_actions(stroke, ctx):
 
     Arguments:
 
-    stroke -- A string representation of the stroke.
+        stroke: A string representation of the stroke.
 
-    last_action -- The context in which the new actions are created
+        last_action: The context in which the new actions are created
 
     Returns: A list of actions.
 
@@ -738,11 +794,11 @@ def _atom_to_action(atom, ctx):
 
     Arguments:
 
-    atom -- A string holding an atom. An atom is an irreducible string that is
-    either entirely a single meta command or entirely text containing no meta
-    commands.
+        atom: A string holding an atom. An atom is an irreducible string that is
+            either entirely a single meta command or entirely text containing no meta
+            commands.
 
-    last_action -- The context in which the new action takes place.
+        last_action: The context in which the new action takes place.
 
     Returns: An action for the atom.
 
