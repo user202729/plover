@@ -311,7 +311,7 @@ class Formatter:
     """Convert translations into output.
 
     The main entry point for this class is format, which takes in translations
-    to format. Output is sent via an output class passed in through set_output.
+    to format. Output is sent via an output class passed in through :meth:`set_output`.
     Other than setting the output, the formatter class is stateless.
 
     The output class can define the following functions, which will be called
@@ -333,6 +333,8 @@ class Formatter:
         'output', ['send_backspaces', 'send_string', 'send_key_combination',
                    'send_engine_command'])
     """
+    Helper type to store the functions to call on the output class internally.
+
     Attributes:
         send_backspaces ():
         send_string ():
@@ -364,6 +366,7 @@ class Formatter:
         self._listeners.remove(callback)
 
     def set_output(self, output):
+        # type: (typing.Any) -> None
         """Set the output class."""
         noop = lambda x: None
         output_type = self.output_type
