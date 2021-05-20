@@ -7,6 +7,7 @@ from collections import ChainMap, namedtuple, OrderedDict
 import configparser
 import json
 import re
+import typing
 
 from plover.exception import InvalidConfigurationError
 from plover.machine.keymap import Keymap
@@ -291,6 +292,10 @@ def dictionaries_option():
 
 
 class Config:
+    """
+    An object containing the entire Plover configuration. The config object
+    maintains a cache for any changes that are made while Plover is running.
+    """
 
     def __init__(self, path=None):
         self._config = None
@@ -300,6 +305,11 @@ class Config:
         self.clear()
 
     def load(self):
+        """
+        Reads and parses the configuration from the configuration file.
+        Raises an :exc:`InvalidConfigurationError<plover.exception.InvalidConfigurationError>`
+        if the configuration could not be parsed correctly.
+        """
         self.clear()
         with open(self.path, encoding='utf-8') as fp:
             try:
@@ -308,10 +318,16 @@ class Config:
                 raise InvalidConfigurationError(str(e))
 
     def clear(self):
+        """
+        Clears the configuration and returns to the base state.
+        """
         self._config = configparser.RawConfigParser()
         self._cache.clear()
 
     def save(self):
+        """
+        Writes the current state of the configuration to the configuration file.
+        """
         with resource_update(self.path) as temp_path:
             with open(temp_path, mode='w', encoding='utf-8') as fp:
                 self._config.write(fp)
@@ -350,9 +366,19 @@ class Config:
         plugin_option('system_name', 'system', DEFAULT_SYSTEM_NAME, 'System', 'name'),
         system_keymap_option(),
         dictionaries_option(),
-    ])
+    ])  # type: OrderedDict[str, ConfigOption]
 
     def _lookup(self, key):
+        # type: (typing.Union[str, tuple]) -> typing.Tuple[typing.Union[str, tuple], ConfigOption]
+        """
+        Get the ConfigOption object from the option name.
+
+        Arguments:
+            key: the option name as a string (such as ``translation_frame_opacity``),
+                or a full_key tuple, where the first item is the option name,
+                and the rest are option-specific identifiers
+                (such as ``('system_keymap', 'English Stenotype', 'Gemini PR')``).
+        """
         name = key[0] if isinstance(key, tuple) else key
         opt = self._OPTIONS[name]
         if opt.full_key is not None:
@@ -360,6 +386,10 @@ class Config:
         return key, opt
 
     def __getitem__(self, key):
+        """
+        Returns the value of the specified ``key`` in the cache, or in the
+        full configuration if not available.
+        """
         key, opt = self._lookup(key)
         if key in self._cache:
             return self._cache[key]
@@ -374,15 +404,27 @@ class Config:
         return value
 
     def __setitem__(self, key, value):
+        # type: (str, typing.Any) -> None
+        """
+        Sets the property ``key`` in the configuration to the specified value.
+        """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)
         opt.setter(self, key, value)
         self._cache[key] = value
 
     def as_dict(self):
+        # type: () -> typing.Dict[str, typing.Any]
+        """
+        Returns the ``dict`` representation of the current state of the
+        configuration.
+        """
         return {opt.name: self[opt.name] for opt in self._OPTIONS.values()}
 
     def update(self, **kwargs):
+        """
+        Update the cache to reflect the contents of the full configuration.
+        """
         new_settings = []
         new_config = ChainMap({}, self)
         for opt in self._OPTIONS.values():

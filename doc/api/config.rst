@@ -6,42 +6,55 @@
 This modules handles reading and writing Plover's configuration files, as well
 as updating the configuration on-the-fly while Plover is running.
 
-.. class:: Config
+.. autoclass:: Config
+    :members:
+    :private-members:
+    :special-members:
+    :inherited-members:
 
-    An object containing the entire Plover configuration. The config object
-    maintains a cache for any changes that are made while Plover is running.
+..
+    .. autofunction:: io.open
 
-    .. method:: load()
+    .. automodule:: io
+       :members:
 
-        Reads and parses the configuration from the configuration file.
-        Raises an :exc:`InvalidConfigurationError<plover.exception.InvalidConfigurationError>`
-        if the configuration could not be parsed correctly.
+..
+    .. class:: Config
 
-    .. method:: clear()
+        An object containing the entire Plover configuration. The config object
+        maintains a cache for any changes that are made while Plover is running.
 
-        Clears the configuration and returns to the base state.
+        .. method:: load()
 
-    .. method:: save()
+            Reads and parses the configuration from the configuration file.
+            Raises an :exc:`InvalidConfigurationError<plover.exception.InvalidConfigurationError>`
+            if the configuration could not be parsed correctly.
 
-        Writes the current state of the configuration to the configuration file.
+        .. method:: clear()
 
-    .. method:: __getitem__(key)
+            Clears the configuration and returns to the base state.
 
-        Returns the value of the specified `key` in the cache, or in the
-        full configuration if not available.
+        .. method:: save()
 
-    .. method:: __setitem__(key, value)
+            Writes the current state of the configuration to the configuration file.
 
-        Sets the property `key` in the configuration to the specified value.
+        .. method:: __getitem__(key)
 
-    .. method:: as_dict()
+            Returns the value of the specified `key` in the cache, or in the
+            full configuration if not available.
 
-        Returns the ``dict`` representation of the current state of the
-        configuration.
+        .. method:: __setitem__(key, value)
 
-    .. method:: update()
+            Sets the property `key` in the configuration to the specified value.
 
-        Update the cache to reflect the contents of the full configuration.
+        .. method:: as_dict()
+
+            Returns the ``dict`` representation of the current state of the
+            configuration.
+
+        .. method:: update()
+
+            Update the cache to reflect the contents of the full configuration.
 
 .. exception:: InvalidConfigOption(raw_value, fixed_value[, message=None])
 
