@@ -66,8 +66,20 @@ ConfigOption = namedtuple('ConfigOption', '''
                           ''')
 
 class InvalidConfigOption(ValueError):
+    """
+    An exception raised when a configuration option has been set to an invalid
+    value, such as one of the wrong type. ``fixed_value`` is the value that
+    Plover is falling back on if ``raw_value`` can't be parsed correctly.
+    """
 
     def __init__(self, raw_value, fixed_value, message=None):
+        # type: (typing.Any, typing.Any, str) -> None
+        """
+        Arguments:
+            raw_value:
+            fixed_value:
+            message:
+        """
         super().__init__(raw_value)
         self.raw_value = raw_value
         self.fixed_value = fixed_value
@@ -404,7 +416,7 @@ class Config:
         return value
 
     def __setitem__(self, key, value):
-        # type: (str, typing.Any) -> None
+        # type: (typing.Union[str, tuple], typing.Any) -> None
         """
         Sets the property ``key`` in the configuration to the specified value.
         """

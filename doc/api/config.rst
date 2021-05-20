@@ -12,55 +12,9 @@ as updating the configuration on-the-fly while Plover is running.
     :special-members:
     :inherited-members:
 
-..
-    .. autofunction:: io.open
-
-    .. automodule:: io
-       :members:
-
-..
-    .. class:: Config
-
-        An object containing the entire Plover configuration. The config object
-        maintains a cache for any changes that are made while Plover is running.
-
-        .. method:: load()
-
-            Reads and parses the configuration from the configuration file.
-            Raises an :exc:`InvalidConfigurationError<plover.exception.InvalidConfigurationError>`
-            if the configuration could not be parsed correctly.
-
-        .. method:: clear()
-
-            Clears the configuration and returns to the base state.
-
-        .. method:: save()
-
-            Writes the current state of the configuration to the configuration file.
-
-        .. method:: __getitem__(key)
-
-            Returns the value of the specified `key` in the cache, or in the
-            full configuration if not available.
-
-        .. method:: __setitem__(key, value)
-
-            Sets the property `key` in the configuration to the specified value.
-
-        .. method:: as_dict()
-
-            Returns the ``dict`` representation of the current state of the
-            configuration.
-
-        .. method:: update()
-
-            Update the cache to reflect the contents of the full configuration.
-
-.. exception:: InvalidConfigOption(raw_value, fixed_value[, message=None])
-
-    An exception raised when a configuration option has been set to an invalid
-    value, such as one of the wrong type. `fixed_value` is the value that
-    Plover is falling back on if `raw_value` can't be parsed correctly.
+.. autoexception:: InvalidConfigOption
+    :special-members: __init__, __str__
+    :members:
 
 .. class:: DictionaryConfig
 
