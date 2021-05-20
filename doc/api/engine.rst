@@ -28,12 +28,12 @@ and dictionaries.
 
     .. attribute:: config
 
-        A :class:`Config<plover.config.Config>` object containing the engine's
+        A :class:`~plover.config.Config` object containing the engine's
         configuration.
 
     .. attribute:: translator_state
 
-        A :class:`_State<plover.translation._State>` object containing the
+        A :class:`~plover.translation._State` object containing the
         current state of the translator.
 
     .. attribute:: starting_stroke_state
@@ -44,7 +44,7 @@ and dictionaries.
     .. attribute:: dictionaries
 
         A
-        :class:`StenoDictionaryCollection<plover.steno_dictionary.StenoDictionaryCollection>`
+        :class:`~plover.steno_dictionary.StenoDictionaryCollection`
         of all the dictionaries Plover has loaded for the current system.
         This includes disabled dictionaries and dictionaries that failed to load.
 
@@ -115,7 +115,7 @@ and dictionaries.
 
         Returns a list of suggestions for the specified `translation`.
 
-        :rtype: List[:class:`Suggestion<plover.suggestions.Suggestion>`]
+        :rtype: List[:class:`~plover.suggestions.Suggestion`]
 
     .. method:: clear_translator_state([undo=False])
 
@@ -133,7 +133,7 @@ and dictionaries.
         a handler in the first place.
 
     The following methods simply provide a way to access the underlying
-    :class:`StenoDictionaryCollection<plover.steno_dictionary.StenoDictionaryCollection>`.
+    :class:`~plover.steno_dictionary.StenoDictionaryCollection`.
     See the documentation there for more complete information.
 
     .. method:: lookup(translation)
@@ -207,13 +207,13 @@ and dictionaries.
 
     .. attribute:: keymap
 
-        A :class:`Keymap<plover.machine.keymap.Keymap>` mapping the current
+        A :class:`~plover.machine.keymap.Keymap` mapping the current
         system to this machine.
 
 .. class:: ErroredDictionary(path, exception)
 
     A placeholder class for a dictionary that failed to load. This is a subclass
-    of :class:`StenoDictionary<plover.steno_dictionary.StenoDictionary>`.
+    of :class:`~plover.steno_dictionary.StenoDictionary`.
 
     :param path: The path to the dictionary file.
     :param exception: The exception that caused the dictionary loading to fail.
@@ -259,7 +259,7 @@ called when Plover hooks get triggered.
 
     The dictionaries were loaded, either when Plover starts up or the system
     is changed or when the engine is reset. `dictionaries` is a
-    :class:`StenoDictionaryCollection<plover.steno_dictionary.StenoDictionaryCollection>`.
+    :class:`~plover.steno_dictionary.StenoDictionaryCollection`.
 
 .. js:function:: send_string(s)
 

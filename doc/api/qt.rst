@@ -9,7 +9,7 @@ developing GUI tool plugins.
 .. class:: Engine
 
     This is largely just a subclass of
-    :class:`StenoEngine<plover.engine.StenoEngine>`,
+    :class:`~plover.engine.StenoEngine`,
     except for some Qt-specific logic, such as the signals below.
 
     Since Qt's signals will fit better into the Qt processing model than

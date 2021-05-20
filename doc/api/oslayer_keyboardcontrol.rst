@@ -53,7 +53,7 @@ keyboard emulation (writing the output from steno translation).
 .. class:: KeyboardEmulation
 
     Encapsulates logic for sending keystrokes. Pass an instance of this to
-    the :class:`StenoEngine<plover.engine.StenoEngine>` when it is initialized.
+    the :class:`~plover.engine.StenoEngine` when it is initialized.
 
     .. method:: send_backspaces(number_of_backspaces)
 

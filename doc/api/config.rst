@@ -173,7 +173,7 @@ System
 
 .. describe:: system_keymap
 
-    A :class:`Keymap<plover.machine.keymap.Keymap>` mapping between machine
+    A :class:`~plover.machine.keymap.Keymap` mapping between machine
     keys and steno keys in the current steno system.
 
     If the system defines a keymap in :data:`KEYMAPS<plover.system.KEYMAPS>`

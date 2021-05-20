@@ -14,7 +14,7 @@ to faster, more fluent writing. This module handles providing suggestions.
 
     .. attribute:: dictionary
 
-        A :class:`StenoDictionaryCollection<plover.steno_dictionary.StenoDictionaryCollection>`
+        A :class:`~plover.steno_dictionary.StenoDictionaryCollection`
         containing all of the dictionaries to look up translations from.
 
     .. method:: find(translation)

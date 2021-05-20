@@ -58,7 +58,7 @@ built-in |logging|_ module.
         Logs `stroke` to the stroke log file. Does nothing if the stroke
         logging handler is not set up, or stroke logging is disabled.
 
-        :type stroke: :class:`Stroke<plover.steno.Stroke>`
+        :type stroke: :class:`~plover.steno.Stroke`
 
     .. method:: log_translation(undo, do, prev)
 
