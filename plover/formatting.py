@@ -676,6 +676,7 @@ class _Action:
         self.command = command
 
     def copy_state(self):
+        # type: () -> _Action
         """Clone this action but only clone the state variables."""
         return _Action(
             # Previous.
@@ -689,6 +690,10 @@ class _Action:
         )
 
     def new_state(self):
+        # type: () -> _Action
+        """
+        """
+        
         return _Action(
             # Previous.
             prev_attach=self.next_attach,
