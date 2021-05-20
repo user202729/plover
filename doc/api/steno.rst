@@ -79,12 +79,10 @@ write:
 Note that ``TPHU``, ``KWRORBG`` and ``TAOEUPLS`` are all separate strokes, but
 the ``/`` indicates that they are written in sequence.
 
+.. automodule:: plover.steno
+   :members: STROKE_DELIMITER, normalize_stroke
+
 .. py:module:: plover.steno
-
-.. data:: STROKE_DELIMITER
-
-    The character used to separate successive strokes.
-    This is equivalent to ``/``.
 
 .. class:: Stroke(steno_keys)
 
@@ -122,24 +120,6 @@ the ``/`` indicates that they are written in sequence.
         the previous stroke.
 
         :type: bool
-
-.. function:: normalize_stroke(stroke)
-
-    Return the :ref:`canonical<canonical>` steno notation for the stroke.
-
-    :param stroke: Steno notation for a stroke.
-    :type stroke: str
-
-.. function:: normalize_steno(strokes_string)
-
-    Return the :ref:`canonical<canonical>` steno notation for the outline.
-    This simply splits the string into individual strokes and calls
-    :func:`normalize_stroke` on them.
-
-    :param strokes_string: Steno notation for an outline.
-    :type strokes_string: str
-    :return: A tuple consisting of the canonical steno notation for each stroke.
-    :rtype: Tuple[str]
 
 .. function:: sort_steno_keys(steno_keys)
 
