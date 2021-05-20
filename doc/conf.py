@@ -27,12 +27,17 @@ extensions = [
   'sphinxcontrib.yt',
   'sphinx.ext.autodoc',
   'sphinx.ext.napoleon',
-  'sphinx_autodoc_typehints',
 ]
 
 templates_path = ['_templates']
 
 exclude_patterns = []
+
+
+# -- Options for Sphinx autodoc ----------------------------------------------
+
+autodoc_typehints = "description"
+#autodoc_typehints = "both"  # does not work
 
 
 # -- Options for HTML output -------------------------------------------------
