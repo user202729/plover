@@ -5,6 +5,7 @@ from queue import Queue
 import os
 import shutil
 import threading
+import typing
 
 from plover import log, system
 from plover.dictionary.loading_manager import DictionaryLoadingManager
@@ -73,6 +74,25 @@ def with_lock(func):
 
 
 class StenoEngine:
+    """
+    Attributes:
+        _config (Config):
+        _is_running (bool):
+        _queue ():
+        _lock ():
+        _machine ():
+        _machine_state ():
+        _machine_params ():
+        _formatter (Formatter):
+        _translator (Translator):
+        _dictionaries ():
+        _dictionaries_manager ():
+        _running_state ():
+        _keyboard_emulation (plover.keyboardcontrol.KeyboardEmulation):
+        _hooks (typing.Dict[str, typing.List[typing.Callable]]):
+        _running_extensions (typing.Dict[str, typing.Any]):
+    """
+
 
     HOOKS = '''
     stroked
@@ -129,6 +149,9 @@ class StenoEngine:
             self._queue.put((func, args, kwargs))
 
     def run(self):
+        """
+        Starts the steno engine, translating any strokes that are input.
+        """
         while True:
             func, args, kwargs = self._queue.get()
             try:
@@ -434,15 +457,26 @@ class StenoEngine:
         return True
 
     def start(self):
+        """
+        Starts the steno engine.
+        """
         self._same_thread_hook(self._start)
 
     def quit(self, code=0):
+        """
+        Quits the steno engine, ensuring that all pending tasks are completed
+        before exiting.
+        """
         # We need to go through the queue, even when already called
         # from the engine thread so _quit's return code does break
         # the thread out of its main loop.
         self._queue.put((self._quit, (code,), {}))
 
     def restart(self):
+        """
+        Quits and restarts the steno engine, ensuring that all pending tasks
+        are completed.
+        """
         self.quit(-1)
 
     def join(self):

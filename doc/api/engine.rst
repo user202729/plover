@@ -7,6 +7,9 @@ The steno engine is the core of Plover; it handles communication between the
 machine and the translation and formatting subsystems, and manages configuration
 and dictionaries.
 
+.. autoclass:: StenoEngine
+   :members:
+
 .. class:: StenoEngine(config, keyboard_emulation)
 
     .. data:: HOOKS
@@ -51,24 +54,6 @@ and dictionaries.
         is running on. This is useful because event listeners for machines and
         others are run on separate threads, and we want to be able to run
         engine events on the same thread as the main engine.
-
-    .. method:: start()
-
-        Starts the steno engine.
-
-    .. method:: quit([code=0])
-
-        Quits the steno engine, ensuring that all pending tasks are completed
-        before exiting.
-
-    .. method:: restart()
-
-        Quits and restarts the steno engine, ensuring that all pending tasks
-        are completed.
-
-    .. method:: run()
-
-        Starts the steno engine, translating any strokes that are input.
 
     .. method:: join()
 
