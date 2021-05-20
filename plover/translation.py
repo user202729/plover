@@ -11,13 +11,14 @@ in the context of a particular dictionary. The dictionary in question maps
 stroke sequences to strings, which are typically words or phrases, but could
 also be meta commands.
 
-Translator: A state machine that takes in a single :class:`~plover.steno.Stroke` object at a time and
+:class:`Translator`: A state machine that takes in a single :class:`~plover.steno.Stroke` object at a time and
 emits one or more :class:`Translation` objects based on a greedy conversion algorithm.
 
 """
 
 from collections import namedtuple
 import re
+import typing
 
 from plover.steno import Stroke
 from plover.steno_dictionary import StenoDictionaryCollection
@@ -108,6 +109,7 @@ class Translation:
     """
 
     def __init__(self, outline, translation):
+        # type: (typing.List[Stroke], typing.Optional[str]) -> None
         """Create a translation by looking up strokes in a dictionary.
 
         Arguments:
@@ -167,14 +169,14 @@ class Translator:
 
     An instance of this class serves as a state machine for processing key
     presses as they come off a stenotype machine. Key presses arrive in batches,
-    each batch representing a single stenotype chord. The Translator class
+    each batch representing a single stenotype chord. The :class:`Translator` class
     receives each chord as a :class:`~plover.steno.Stroke` and adds the :class:`~plover.steno.Stroke` to an internal,
     length-limited FIFO, which is then translated into a sequence of :class:`Translation`
     objects. The resulting sequence of Translations is compared to those
     previously emitted by the state machine and a sequence of new Translations
     (some corrections and some new) is emitted.
 
-    The internal :class:`~plover.steno.Stroke` FIFO is translated in a greedy fashion; the Translator
+    The internal :class:`~plover.steno.Stroke` FIFO is translated in a greedy fashion; the :class:`Translator`
     finds a translation for the longest sequence of Strokes that starts with the
     oldest :class:`~plover.steno.Stroke` in the FIFO before moving on to newer Strokes that haven't yet
     been translated. In practical terms, this means that corrections are needed
@@ -183,12 +185,12 @@ class Translator:
 
     For example, consider the case in which the first :class:`~plover.steno.Stroke` can be translated
     as 'cat'. In this case, a :class:`Translation` object representing 'cat' will be
-    emitted as soon as the :class:`~plover.steno.Stroke` is processed by the Translator. If the next
+    emitted as soon as the :class:`~plover.steno.Stroke` is processed by the :class:`Translator`. If the next
     :class:`~plover.steno.Stroke` is such that combined with the first they form 'catalogue', then the
-    Translator will first issue a correction for the initial 'cat' :class:`Translation`
+    :class:`Translator` will first issue a correction for the initial 'cat' :class:`Translation`
     and then issue a new :class:`Translation` for 'catalogue'.
 
-    A Translator takes input via the translate method and provides translation
+    A :class:`Translator` takes input via the translate method and provides translation
     output to every function that has registered via the add_callback method.
 
     """
