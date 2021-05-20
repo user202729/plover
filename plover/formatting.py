@@ -327,13 +327,18 @@ class Formatter:
     send_engine_command: Takes a string which names the special command to
     execute.
 
-    TODO -> output
-
     """
 
     output_type = namedtuple(
         'output', ['send_backspaces', 'send_string', 'send_key_combination',
                    'send_engine_command'])
+    """
+    Attributes:
+        send_backspaces ():
+        send_string ():
+        send_key_combination ():
+        send_engine_command ():
+    """
 
     def __init__(self):
         self.set_output(None)
