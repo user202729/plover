@@ -35,15 +35,30 @@ SYSTEM_KEYMAP_OPTION = 'keymap[%s]'
 
 
 class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
+    """
+    Represents the configuration for one dictionary.
+    
+    Attributes:
+        path (str): The fully qualified path to the dictionary file.
+        enabled (bool): Whether the dictionary is enabled.
+    """
+    
 
     def __new__(cls, path, enabled=True):
         return super().__new__(cls, expand_path(path), enabled)
 
     @property
     def short_path(self):
+        """
+        The shortened path to the dictionary file. This is automatically
+        calculated from :attr:`path`.
+        """
         return shorten_path(self.path)
 
     def to_dict(self):
+        """
+        Returns the ``dict`` representation of the dictionary configuration.
+        """
         # Note: do not use _asdict because of
         # https://bugs.python.org/issue24931
         return {
@@ -52,10 +67,17 @@ class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
         }
 
     def replace(self, **kwargs):
+        """
+        Replaces the values of :attr:`path` and :attr:`enabled` with those in `kwargs`.
+        """
         return self._replace(**kwargs)
 
     @staticmethod
     def from_dict(d):
+        """
+        Returns a :class:`DictionaryConfig` constructed from its ``dict``
+        representation.
+        """
         return DictionaryConfig(**d)
 
 

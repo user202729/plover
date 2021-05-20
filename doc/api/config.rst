@@ -16,41 +16,9 @@ as updating the configuration on-the-fly while Plover is running.
     :special-members: __init__, __str__
     :members:
 
-.. class:: DictionaryConfig
+.. autoclass:: DictionaryConfig
+   :members:
 
-    Represents the configuration for one dictionary.
-
-    .. attribute:: path
-
-        The fully qualified path to the dictionary file.
-
-        :type: str
-
-    .. attribute:: short_path
-
-        The shortened path to the dictionary file. This is automatically
-        calculated from :attr:`path`.
-
-        :type: str
-
-    .. attribute:: enabled
-
-        Whether the dictionary is enabled.
-
-        :type: bool
-
-    .. staticmethod:: from_dict(d)
-
-        Returns a :class:`DictionaryConfig` constructed from its ``dict``
-        representation.
-
-    .. method:: to_dict()
-
-        Returns the ``dict`` representation of the dictionary configuration.
-
-    .. method:: replace(**kwargs)
-
-        Replaces the values of :attr:`path` and :attr:`enabled` with those in `kwargs`.
 
 Configuration Options
 ---------------------
