@@ -291,9 +291,10 @@ class Translator:
         self._state = _State()
 
     def translate_stroke(self, stroke):
+        # type: (Stroke) -> None
         """Process a stroke.
 
-        See the class documentation for details of how :class:`~plover.steno.Stroke` objects
+        See the :class:`Translator` class documentation for details of how :class:`~plover.steno.Stroke` objects
         are converted to :class:`Translation` objects.
 
         Arguments:
@@ -348,6 +349,7 @@ class Translator:
         self._to_do += len(translations)
 
     def _find_translation_helper(self, stroke, suffixes=()):
+        # type: (Stroke, typing.Sequence[str]) -> Translation
         """
         """
         # Figure out how much of the translation buffer can be involved in this
@@ -375,6 +377,7 @@ class Translator:
                 return t
 
     def lookup(self, strokes, suffixes=()):
+        # type: (typing.Sequence[Stroke], typing.Sequence[str]) -> Translation
         """
         """
         dict_key = tuple(s.rtfcre for s in strokes)
