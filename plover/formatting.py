@@ -182,6 +182,7 @@ class RetroFormatter:
             yield from reversed(translation.formatting)
 
     def iter_last_fragments(self):
+        # type: () -> typing.Iterable[str]
         """Iterate over last text fragments (last first).
 
         A text fragment is a series of non-whitespace characters
@@ -241,7 +242,7 @@ class RetroFormatter:
                 yield word.rstrip() if strip else word
 
     def last_words(self, count=1, strip=False, rx=WORD_RX):
-        # type: (int, bool, re.Pattern) -> List[str]
+        # type: (int, bool, re.Pattern) -> typing.List[str]
         """Return the last <count> words.
 
         Arguments:
@@ -277,9 +278,9 @@ class _Context(RetroFormatter):
     actions/text/words.
 
     Attributes:
-        previous_translations (List[Translation]):
+        previous_translations (typing.List[Translation]):
         last_action (_Action):
-        translated_actions (List[_Action]):
+        translated_actions (typing.List[_Action]):
     """
 
     def __init__(self, previous_translations, last_action):
@@ -474,14 +475,15 @@ class TextFormatter:
     """Format a series of action into text.
     
     Attributes:
-        spaces_after ():
-        replaced_text ():
-        appended_text ():
-        trailing_space ():
+        spaces_after (bool):
+        replaced_text (str):
+        appended_text (str):
+        trailing_space (str):
 
     """
 
     def __init__(self, spaces_after):
+        # type: (bool) -> None
         self.spaces_after = spaces_after
         # Initial replaced text.
         self.replaced_text = ''
@@ -490,6 +492,7 @@ class TextFormatter:
         self.trailing_space = ''
 
     def _render_action(self, action):
+        # type: (_Action) -> None
         if self.spaces_after and self.trailing_space:
             assert self.appended_text.endswith(self.trailing_space)
             self.appended_text = self.appended_text[:-len(self.trailing_space)]
@@ -520,6 +523,7 @@ class TextFormatter:
             self.trailing_space = ''
 
     def render(self, action_list, last_action):
+        # type: (typing.List[_Action], _Action) -> Iterable[_Action]
         """Render a series of action.
 
         Note: the function is a generator that yields non-text
@@ -547,9 +551,10 @@ class OutputHelper:
     optimizes away extra backspaces and typing.
 
     Attributes:
-        output ():
-        before ():
-        after ():
+        output (:data:`Formatter.output_type`): The object that contains the functions
+            to call with the output.
+        before (TextFormatter):
+        after (TextFormatter):
     """
     def __init__(self, output, before_spaces_after, after_spaces_after):
         self.output = output
@@ -606,22 +611,14 @@ class _Action:
     instructions are used to render the current action and the state is used as
     context to render future translations.
 
+    **Documentation TODO** (how to remove the "parameters" and "return type" part below?)
+
+    There are also other attributes that has the same name as the parameter names of
+    :meth:`__init__`.
+
     Attributes:
         DEFAULT (_Action):
-        prev_attach (bool):
-        glue (bool):
-        word (typing.Optional[str]):
-        upper_carry (bool):
-        orthography (bool):
-        next_attach (bool):
-        next_case (bool):
-        space_char (str):
-        case (:const:`Case`):
-        trailing_space (str):
-        prev_replace (str):
-        text (typing.Optional[str]):
-        combo (typing.Optional[str]):
-        command (typing.Optional[str]):
+
 
     """
 
@@ -635,6 +632,7 @@ class _Action:
                  # Next.
                  next_attach=False, next_case=None
                 ):
+        # type: (bool, str, bool, typing.Optional[str], bool, str, bool, Case, typing.Optional[str], str, typing.Optional[str], typing.Optional[str], bool, bool) -> None
         """Initialize a new action.
 
         Arguments:
@@ -651,13 +649,13 @@ class _Action:
                     context for future actions whose behavior depends on it such as
                     suffixes.
 
-            upper_carry: ``True`` if we are uppercasing the current word.
-
             orthography: ``True`` if orthography rules should be applies when adding
                           a suffix to this action.
 
             space_char: this character will replace spaces after all other
                 formatting has been applied
+
+            upper_carry: ``True`` if we are uppercasing the current word.
 
             case: an integer to determine which case to output after formatting
 
@@ -752,7 +750,7 @@ def _translation_to_actions(translation, ctx):
 
         translation: A string with the translation to render.
 
-        last_action: The action in whose context this translation is formatted.
+        ctx: The context in which the new actions are created.
 
     Returns: A list of actions.
 
@@ -780,14 +778,14 @@ def _translation_to_actions(translation, ctx):
 
 
 def _raw_to_actions(stroke, ctx):
-    # type: (str) -> typing.List[_Action]
+    # type: (str, _Context) -> typing.List[_Action]
     """Turn a raw stroke into actions.
 
     Arguments:
 
         stroke: A string representation of the stroke.
 
-        last_action: The context in which the new actions are created
+        ctx: The context in which the new actions are created.
 
     Returns: A list of actions.
 
@@ -826,7 +824,7 @@ def _atom_to_action(atom, ctx):
             either entirely a single meta command or entirely text containing no meta
             commands.
 
-        last_action: The context in which the new action takes place.
+        ctx: The context in which the new actions are created.
 
     Returns: An action for the atom.
 
