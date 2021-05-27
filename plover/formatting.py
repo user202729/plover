@@ -12,6 +12,7 @@ from os.path import commonprefix
 from collections import namedtuple
 import re
 import string
+import typing
 
 from plover.registry import registry
 
@@ -26,12 +27,12 @@ Case = Enum('case', ((c, c.lower()) for c in '''
                      '''.split()))
 """
 Attributes:
-    CAP_FIRST_WORD ():
-    LOWER ():
-    LOWER_FIRST_CHAR ():
-    TITLE ():
-    UPPER ():
-    UPPER_FIRST_WORD ():
+    CAP_FIRST_WORD (int):
+    LOWER (int):
+    LOWER_FIRST_CHAR (int):
+    TITLE (int):
+    UPPER (int):
+    UPPER_FIRST_WORD (int):
 """
 
 SPACE = ' '
@@ -175,6 +176,7 @@ class RetroFormatter:
         self.previous_translations = previous_translations
 
     def iter_last_actions(self):
+        # type: () -> typing.Iterable[_Action]
         """Iterate over past actions (last first)."""
         for translation in reversed(self.previous_translations):
             yield from reversed(translation.formatting)
@@ -275,9 +277,9 @@ class _Context(RetroFormatter):
     actions/text/words.
 
     Attributes:
-        previous_translations ():
-        last_action ():
-        translated_actions (List[_Action]):  (TODO check if type annotation is correct)
+        previous_translations (List[Translation]):
+        last_action (_Action):
+        translated_actions (List[_Action]):
     """
 
     def __init__(self, previous_translations, last_action):
@@ -287,10 +289,12 @@ class _Context(RetroFormatter):
         self.translated_actions = []
 
     def new_action(self):
+        # type: () -> _Action
         """Create a new action, only copying global state."""
         return self.last_action.new_state()
 
     def copy_last_action(self):
+        # type: () -> _Action
         """Create a new action, cloning the last action state."""
         return self.last_action.copy_state()
 
@@ -302,6 +306,7 @@ class _Context(RetroFormatter):
         self.last_action = action
 
     def iter_last_actions(self):
+        # type: () -> typing.Iterable[_Action]
         """Custom iterator with support for newly translated actions."""
         yield from reversed(self.translated_actions)
         yield from super().iter_last_actions()
@@ -317,16 +322,22 @@ class Formatter:
     The output class can define the following functions, which will be called
     if available:
 
-    send_backspaces: Takes a number and deletes back that many characters.
+    - send_backspaces: Takes a number and deletes back that many characters.
 
-    send_string: Takes a string and prints it verbatim.
+    - send_string: Takes a string and prints it verbatim.
 
-    send_key_combination: Takes a string the dictionary format for specifying
-    key combinations and issues them.
+    - send_key_combination: Takes a string the dictionary format for specifying
+      key combinations and issues them.
 
-    send_engine_command: Takes a string which names the special command to
-    execute.
+    - send_engine_command: Takes a string which names the special command to
+      execute.
 
+    Attributes:
+        spaces_after (bool):
+        last_output_spaces_after (bool):
+        start_capitalized (bool):
+        start_attached (bool):
+        _listeners (typing.Set[Callable]):
     """
 
     output_type = namedtuple(
@@ -374,11 +385,13 @@ class Formatter:
         self._output = output_type(*[getattr(output, f, noop) for f in fields])
 
     def set_space_placement(self, s):
+        # type: (str) -> None
         # Set whether spaces will be inserted
         # before the output or after the output
         self.spaces_after = bool(s == 'After Output')
 
     def format(self, undo, do, prev):
+        # type: (typing.List[Translation], Translation, typing.List[Translation]) -> None
         """Format the given translations.
 
         Arguments:
@@ -595,20 +608,20 @@ class _Action:
 
     Attributes:
         DEFAULT (_Action):
-        prev_attach (str):
-        glue (str):
-        word (str):
-        upper_carry (str):
-        orthography (str):
-        next_attach (str):
-        next_case (str):
+        prev_attach (bool):
+        glue (bool):
+        word (typing.Optional[str]):
+        upper_carry (bool):
+        orthography (bool):
+        next_attach (bool):
+        next_case (bool):
         space_char (str):
-        case (str):
+        case (:const:`Case`):
         trailing_space (str):
         prev_replace (str):
-        text (str):
-        combo (str):
-        command (str):
+        text (typing.Optional[str]):
+        combo (typing.Optional[str]):
+        command (typing.Optional[str]):
 
     """
 
@@ -626,25 +639,25 @@ class _Action:
 
         Arguments:
 
-            prev_attach: True if there should be no space between this and the
+            prev_attach: ``True`` if there should be no space between this and the
                            previous action.
 
             prev_replace: Text that should be deleted for this action.
 
-            glue: True if there be no space between this and the next action if
-                    the next action also has glue set to True.
+            glue: ``True`` if there be no space between this and the next action if
+                    the next action also has glue set to ``True``.
 
             word: The current root word (sans prefix, and un-cased). This is
                     context for future actions whose behavior depends on it such as
                     suffixes.
 
-            upper_carry: True if we are uppercasing the current word.
+            upper_carry: ``True`` if we are uppercasing the current word.
 
-            othography: True if orthography rules should be applies when adding
+            orthography: ``True`` if orthography rules should be applies when adding
                           a suffix to this action.
 
             space_char: this character will replace spaces after all other
-            formatting has been applied
+                formatting has been applied
 
             case: an integer to determine which case to output after formatting
 
@@ -659,7 +672,7 @@ class _Action:
 
             command: The command that should be executed for this action.
 
-            next_attach: True if there should be no space between this and the next
+            next_attach: ``True`` if there should be no space between this and the next
                            action.
 
             next_case: Case to apply to next action: capitalize/lower/upper...
@@ -732,6 +745,7 @@ _Action.DEFAULT = _Action()
 
 
 def _translation_to_actions(translation, ctx):
+    # type: (str, _Context) -> typing.List[_Action]
     """Create actions for a translation.
 
     Arguments:
@@ -766,6 +780,7 @@ def _translation_to_actions(translation, ctx):
 
 
 def _raw_to_actions(stroke, ctx):
+    # type: (str) -> typing.List[_Action]
     """Turn a raw stroke into actions.
 
     Arguments:

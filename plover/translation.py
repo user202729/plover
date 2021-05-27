@@ -58,13 +58,33 @@ _LEGACY_MACROS_ALIASES = {
     '{*!}': 'retrospective_delete_space',
     '{*?}': 'retrospective_insert_space',
     '{*+}': 'repeat_last_stroke',
-}
+}  # type: Dict[str, str]
+"""
+Dictionary of legacy macro translations to macro names.
+"""
 
 _MACRO_RX = re.compile(r'=\w+(:|$)')
 
 Macro = namedtuple('Macro', 'name stroke cmdline')
+"""
+Data structure that represents a macro.
+
+A macro's translation might be either in :const:`_LEGACY_MACROS_ALIASES`, or start with a ``=``.
+Examples:
+
+- ``{*}``
+- ``=undo``
+- ``=macro_name:macro_arguments``
+
+Attributes:
+    name (str): The name of the macro.
+    stroke (Stroke): The stroke. In Plover, macro must be written with a single stroke.
+    cmdline (str): The command-line (argument) passed to the macro.
+"""
+
 
 def _mapping_to_macro(mapping, stroke):
+    # type: (str, Stroke) -> typing.Optional[Macro]
     '''Return a macro/stroke if mapping is one, or None otherwise.'''
     macro, cmdline = None, ''
     if mapping is None:
@@ -91,19 +111,19 @@ class Translation:
 
     Attributes:
 
-        strokes: A sequence of :class:`~plover.steno.Stroke` objects from which the translation is
+        strokes (typing.Sequence[Stroke]): A sequence of :class:`~plover.steno.Stroke` objects from which the translation is
             derived.
 
-        rtfcre: A tuple of RTFCRE strings representing the stroke list. This is
+        rtfcre (typing.Tuple[str, ...]): A tuple of RTFCRE strings representing the stroke list. This is
             used as the key in the translation mapping.
 
-        english: The value of the dictionary mapping given the rtfcre
+        english (typing.Optional[str]): The value of the dictionary mapping given the rtfcre
             key, or None if no mapping exists.
 
-        replaced: A list of translations that were replaced by this one. If this
+        replaced (typing.List[Translation]): A list of translations that were replaced by this one. If this
             translation is undone then it is replaced by these.
 
-        formatting: Information stored on the translation by the formatter for
+        formatting (typing.List[plover.formatting._Action]): Information stored on the translation by the formatter for
             sticky state (e.g. capitalize next stroke) and to hold undo info.
 
     """
@@ -193,6 +213,15 @@ class Translator:
     A :class:`Translator` takes input via the translate method and provides translation
     output to every function that has registered via the add_callback method.
 
+    Attributes:
+        _undo_length (int):
+        _dictionary (StenoDictionaryCollection):
+        _listeners (Set[Callable]):
+        _state (_State): 
+        _to_undo (typing.List[Translation]):
+        _to_do (int):
+
+
     """
     def __init__(self):
         self._undo_length = 0
@@ -204,11 +233,13 @@ class Translator:
         self._to_do = 0
 
     def translate(self, stroke):
+        # type: (Stroke) -> None
         """Process a single stroke."""
         self.translate_stroke(stroke)
         self.flush()
 
     def set_dictionary(self, d):
+        # type: (StenoDictionaryCollection) -> None
         """Set the dictionary."""
         callback = self._dict_callback
         if self._dictionary:
@@ -217,6 +248,7 @@ class Translator:
         d.add_longest_key_listener(callback)
 
     def get_dictionary(self):
+        # type: () -> StenoDictionaryCollection
         return self._dictionary
 
     def add_listener(self, callback):
@@ -236,6 +268,7 @@ class Translator:
         self._listeners.remove(callback)
 
     def set_min_undo_length(self, n):
+        # type: (int) -> None
         """Set the minimum number of strokes that can be undone.
 
         The actual number may be larger depending on the translations in the
@@ -246,6 +279,7 @@ class Translator:
         self._resize_translations()
 
     def flush(self, extra_translations=None):
+        # type: (typing.Optional[typing.List[Translation]]) -> None
         '''Process translations scheduled for undoing/doing.
 
         Arguments:
@@ -317,24 +351,28 @@ class Translator:
         self.translate_translation(t)
 
     def translate_macro(self, macro):
+        # type: (Macro) -> None
         """
         """
         macro_fn = registry.get_plugin('macro', macro.name).obj
         macro_fn(self, macro.stroke, macro.cmdline)
 
     def translate_translation(self, t):
+        # type: (Translation) -> None
         """
         """
         self._undo(*t.replaced)
         self._do(t)
 
     def untranslate_translation(self, t):
+        # type: (Translation) -> None
         """
         """
         self._undo(t)
         self._do(*t.replaced)
 
     def _undo(self, *translations):
+        # type: (*Translation) -> None
         """
         """
         for t in reversed(translations):
@@ -345,6 +383,7 @@ class Translator:
                 self._to_undo.insert(0, t)
 
     def _do(self, *translations):
+        # type: (*Translation) -> None
         """
         """
         self._state.translations.extend(translations)
