@@ -106,23 +106,17 @@ class Translation:
 
     This class represents the mapping between a sequence of Stroke objects and
     a text string, typically a word or phrase. This class is used as the output
-    from translation and the input to formatting. The class contains the 
-    following attributes:
+    from translation and the input to formatting.
 
     Attributes:
-
         strokes (typing.Sequence[Stroke]): A sequence of :class:`~plover.steno.Stroke` objects from which the translation is
             derived.
-
         rtfcre (typing.Tuple[str, ...]): A tuple of RTFCRE strings representing the stroke list. This is
             used as the key in the translation mapping.
-
         english (typing.Optional[str]): The value of the dictionary mapping given the rtfcre
             key, or None if no mapping exists.
-
         replaced (typing.List[Translation]): A list of translations that were replaced by this one. If this
             translation is undone then it is replaced by these.
-
         formatting (typing.List[plover.formatting._Action]): Information stored on the translation by the formatter for
             sticky state (e.g. capitalize next stroke) and to hold undo info.
 
@@ -133,11 +127,8 @@ class Translation:
         """Create a translation by looking up strokes in a dictionary.
 
         Arguments:
-
             outline: A list of :class:`~plover.steno.Stroke` objects.
-
             translation: A translation for the outline or None.
-
         """
         self.strokes = outline
         self.rtfcre = tuple(s.rtfcre for s in outline)
