@@ -148,7 +148,7 @@ class StenoDictionary:
         return self._dict.items()
 
     def update(self, *args, **kwargs):
-        # type: (*Iterable[Tuple[Tuple[str], str], **Tuple[Tuple[str], str])
+        # type: (*Iterable[Tuple[Tuple[str, ...], str], **Tuple[Tuple[str, ...], str])
         """
         Adds the entries provided in `args` and `kwargs` to the dictionary.
         Each item in `args` is an iterable containing steno entries (perhaps
