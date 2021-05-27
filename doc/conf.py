@@ -1,5 +1,10 @@
 # Configuration file for the Sphinx documentation builder.
 
+# -- Mark as Sphinx build ----------------------------------------------------
+
+import builtins
+builtins.__sphinx_build__ = True
+
 # -- Path setup --------------------------------------------------------------
 
 import os
@@ -33,6 +38,7 @@ templates_path = ['_templates']
 
 exclude_patterns = []
 
+autodoc_mock_imports = []
 
 # -- Options for Sphinx autodoc ----------------------------------------------
 
