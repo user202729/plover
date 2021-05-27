@@ -6,6 +6,7 @@ API Reference
 
     api/config
     api/oslayer_config
+    api/dictionary
     api/engine
     api/exception
     api/formatting
