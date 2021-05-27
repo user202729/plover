@@ -206,11 +206,20 @@ class Translator:
 
     Attributes:
         _undo_length (int):
-        _dictionary (StenoDictionaryCollection):
-        _listeners (Set[Callable]):
-        _state (_State): 
-        _to_undo (typing.List[Translation]):
-        _to_do (int):
+        _dictionary (StenoDictionaryCollection): The dictionary.
+            Use :meth:`set_dictionary` and :meth:`get_dictionary` to access it.
+        _listeners (Set[Callable]): The set of listeners for translation outputs.
+            Use :meth:`add_listener` and :meth:`remove_listener` to modify it.
+        _state (_State): The internal translator state.
+        _to_undo (typing.List[Translation]): The list of pending undo translations.
+        
+            Use :meth:`flush` to send the translation result to the listeners.
+        _to_do (int): The number of pending to-do translations.
+
+            The actual translations are stored in 
+            ``translation`` attribute of :attr:`_state`.
+            
+            Use :meth:`flush` to send the translation result to the listeners.
 
 
     """
@@ -225,7 +234,7 @@ class Translator:
 
     def translate(self, stroke):
         # type: (Stroke) -> None
-        """Process a single stroke."""
+        """Process a single stroke, and flush the output."""
         self.translate_stroke(stroke)
         self.flush()
 
@@ -306,20 +315,23 @@ class Translator:
         self._resize_translations()
 
     def get_state(self):
+        # type: () -> _State
         """Get the state of the translator."""
         return self._state
 
     def set_state(self, state):
+        # type: (_State) -> None
         """Set the state of the translator."""
         self._state = state
 
     def clear_state(self):
+        # type: () -> None
         """Reset the state of the translator."""
         self._state = _State()
 
     def translate_stroke(self, stroke):
         # type: (Stroke) -> None
-        """Process a stroke.
+        """Process a stroke without flushing.
 
         See the :class:`Translator` class documentation for details of how :class:`~plover.steno.Stroke` objects
         are converted to :class:`Translation` objects.
@@ -344,6 +356,10 @@ class Translator:
     def translate_macro(self, macro):
         # type: (Macro) -> None
         """
+        Translate a macro without flushing.
+
+        Arguments:
+            macro: the macro.
         """
         macro_fn = registry.get_plugin('macro', macro.name).obj
         macro_fn(self, macro.stroke, macro.cmdline)
@@ -351,6 +367,10 @@ class Translator:
     def translate_translation(self, t):
         # type: (Translation) -> None
         """
+        Translate a translation without flushing.
+
+        Arguments:
+            t: the translation.
         """
         self._undo(*t.replaced)
         self._do(t)
@@ -358,6 +378,10 @@ class Translator:
     def untranslate_translation(self, t):
         # type: (Translation) -> None
         """
+        Untranslate a translation without flushing.
+
+        Arguments:
+            t: the translation.
         """
         self._undo(t)
         self._do(*t.replaced)
@@ -365,6 +389,10 @@ class Translator:
     def _undo(self, *translations):
         # type: (*Translation) -> None
         """
+        Internal method. Untranslating a list of translations without
+        translating the :attr:`~Translation.replaced` part.
+        
+        :meth:`untranslate_translation` should be used instead.
         """
         for t in reversed(translations):
             assert t == self._state.translations.pop()
@@ -376,6 +404,10 @@ class Translator:
     def _do(self, *translations):
         # type: (*Translation) -> None
         """
+        Internal method. Translating a list of translations without
+        untranslating the :attr:`~Translation.replaced` part.
+
+        :meth:`translate_translation` should be used instead.
         """
         self._state.translations.extend(translations)
         self._to_do += len(translations)
@@ -409,8 +441,13 @@ class Translator:
                 return t
 
     def lookup(self, strokes, suffixes=()):
-        # type: (typing.Sequence[Stroke], typing.Sequence[str]) -> Translation
+        # type: (typing.Sequence[Stroke], typing.Sequence[str]) -> typing.Optional[str]
         """
+        Lookup from the dictionary while handling suffixes.
+
+        Arguments:
+            strokes: a sequence of strokes.
+            suffixes: a sequence of key names that can be a suffix key (for example ``["-G", "-S", "-Z"]``)
         """
         dict_key = tuple(s.rtfcre for s in strokes)
         result = self._dictionary.lookup(dict_key)
@@ -439,9 +476,9 @@ class _State:
 
     Attributes:
 
-        translations: A list of all previous translations that are still undoable.
+        translations (List[Translation]): A list of all previous translations that are still undoable.
 
-        tail: The oldest translation still saved but is no longer undoable.
+        tail (Translation): The oldest translation still saved but is no longer undoable.
 
     """
     def __init__(self):
