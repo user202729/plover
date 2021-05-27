@@ -20,13 +20,25 @@ class StenoDictionary:
     length of the longest key.
 
     Attributes:
-    longest_key -- A read only property holding the length of the longest key.
-    timestamp -- File last modification time, used to detect external changes.
+        timestamp (int): The Unix timestamp in seconds when the file was last loaded or saved,
+            used to detect external changes.
+        path (typing.Optional[str]): The path to the dictionary file.
+        reverse (Dict[str, List[Tuple[str, ...]]]):
+            A dictionary mapping translations to possible steno outlines.
+        casereverse (Dict[str, List[Tuple[str, ...]]]):
+            A case-insensitive version of :attr:`reverse`.
+        enabled (bool):
+            ``True`` if the dictionary is enabled, which means Plover can use it to
+            look up translations, ``False`` otherwise.
 
     """
 
-    # False if class support creation.
     readonly = False
+    """
+    ``True`` if the dictionary is read-only, either because the dictionary
+    class does not support it or the file itself is read-only.
+    For most dictionaries this will be ``False``.
+    """
 
     def __init__(self):
         self._dict = {}
@@ -49,6 +61,13 @@ class StenoDictionary:
 
     @classmethod
     def create(cls, resource):
+        # type: (str) -> StenoDictionary
+        """
+        Creates a new empty steno dictionary, saved at the path `resource`.
+        If `resource` refers to an :ref:`asset path<asset_paths>` or the
+        dictionary class is read-only (i.e. :attr:`readonly` is true), this
+        call will fail.
+        """
         assert not resource.startswith(ASSET_SCHEME)
         if cls.readonly:
             raise ValueError('%s does not support creation' % cls.__name__)
@@ -58,6 +77,13 @@ class StenoDictionary:
 
     @classmethod
     def load(cls, resource):
+        # type: (str) -> StenoDictionary
+        """
+        Loads a dictionary from the file at `resource` and returns the
+        dictionary object. If `resource` refers to an `:ref:`asset path<asset_paths>`
+        or the file is not writable by the user, the dictionary will be
+        read-only.
+        """
         filename = resource_filename(resource)
         timestamp = resource_timestamp(filename)
         d = cls()
@@ -70,6 +96,10 @@ class StenoDictionary:
         return d
 
     def save(self):
+        """
+        Saves the contents of the dictionary to the file it was loaded from.
+        This may need to be called after adding dictionary entries.
+        """
         assert not self.readonly
         with resource_update(self.path) as temp_path:
             self._save(temp_path)
@@ -83,6 +113,7 @@ class StenoDictionary:
 
     @property
     def longest_key(self):
+        # type: () -> int
         """The length of the longest key in the dict."""
         return self._longest_key
 
@@ -93,18 +124,37 @@ class StenoDictionary:
         return self._dict.__iter__()
 
     def __getitem__(self, key):
+        # type: (Tuple[str, ...]) -> str
+        """
+        Returns the translation for the steno outline `key`, or raises a
+        ``KeyError`` if it is not in the dictionary.
+        """
         return self._dict.__getitem__(key)
 
     def clear(self):
+        """
+        Removes all entries in the dictionary.
+        """
         self._dict.clear()
         self.reverse.clear()
         self.casereverse.clear()
         self._longest_key = 0
 
     def items(self):
+        # type: () -> Iterable[Tuple[Tuple[str, ...], str]]
+        """
+        Returns the list of items in the dictionary.
+        """
         return self._dict.items()
 
     def update(self, *args, **kwargs):
+        # type: (*Iterable[Tuple[Tuple[str], str], **Tuple[Tuple[str], str])
+        """
+        Adds the entries provided in `args` and `kwargs` to the dictionary.
+        Each item in `args` is an iterable containing steno entries (perhaps
+        batch-loaded from other dictionaries); each key-value pair in `kwargs`
+        corresponds to one steno entry.
+        """
         assert not self.readonly
         iterable_list = [
             a.items() if isinstance(a, (dict, StenoDictionary))
@@ -131,6 +181,11 @@ class StenoDictionary:
                     self[key] = value
 
     def __setitem__(self, key, value):
+        # type (Tuple[str, ...]) -> str
+        """
+        Sets the translation for the steno outline `key` to `value`.
+        Fails if the dictionary is read-only.
+        """
         assert not self.readonly
         if key in self:
             del self[key]
@@ -140,9 +195,19 @@ class StenoDictionary:
         self.casereverse[value.lower()].append(value)
 
     def get(self, key, fallback=None):
+        # type: (Tuple[str, ...], Optional[str]) -> Optional[str]
+        """
+        Returns the translation for the steno outline `key`, or `fallback` if
+        it is not in the dictionary.
+        """
         return self._dict.get(key, fallback)
 
     def __delitem__(self, key):
+        # type: (Tuple[str, ...]) -> None
+        """
+        Deletes the translation for the steno outline `key`.
+        Fails if the dictionary is read-only.
+        """
         assert not self.readonly
         value = self._dict.pop(key)
         self.reverse[value].remove(key)
@@ -154,6 +219,11 @@ class StenoDictionary:
                 self._longest_key = 0
 
     def __contains__(self, key):
+        # type: (Tuple[str, ...]) -> bool
+        """
+        Returns ``True`` if the dictionary contains a translation for the
+        steno outline `key`.
+        """
         return self.get(key) is not None
 
     def reverse_lookup(self, value):

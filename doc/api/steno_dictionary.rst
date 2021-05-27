@@ -8,119 +8,10 @@ for input steno strokes. Plover's steno engine uses a :class:`StenoDictionaryCol
 to look up possible translations across multiple dictionaries, which can be
 configured by the user.
 
-.. class:: StenoDictionary
-
-    Represents a single steno dictionary.
-
-    .. classmethod:: create(resource)
-
-        Creates a new empty steno dictionary, saved at the path `resource`.
-        If `resource` refers to an :ref:`asset path<asset_paths>` or the
-        dictionary class is read-only (i.e. :attr:`readonly` is true), this
-        call will fail.
-
-        :rtype: :class:`StenoDictionary`
-
-    .. classmethod:: load(resource)
-
-        Loads a dictionary from the file at `resource` and returns the
-        dictionary object. If `resource` refers to an `:ref:`asset path<asset_paths>`
-        or the file is not writable by the user, the dictionary will be
-        read-only.
-
-        :rtype: :class:`StenoDictionary`
-
-    .. method:: save()
-
-        Saves the contents of the dictionary to the file it was loaded from.
-        This may need to be called after adding dictionary entries.
-
-    .. attribute:: enabled
-
-        ``True`` if the dictionary is enabled, which means Plover can use it to
-        look up translations, ``False`` otherwise.
-
-    .. attribute:: readonly
-
-        ``True`` if the dictionary is read-only, either because the dictionary
-        class does not support it or the file itself is read-only.
-        For most dictionaries this will be ``False``.
-
-    .. attribute:: timestamp
-
-        The Unix timestamp in seconds when the file was last loaded or saved.
-
-    .. attribute:: path
-
-        The path to the dictionary file.
-
-    .. method:: clear()
-
-        Removes all entries in the dictionary.
-
-    .. method:: items()
-
-        Returns the list of items in the dictionary.
-
-        :rtype: List[Tuple[Tuple[str], str]]
-
-    .. method:: update(*args, **kwargs)
-
-        Adds the entries provided in `args` and `kwargs` to the dictionary.
-        Each item in `args` is an iterable containing steno entries (perhaps
-        batch-loaded from other dictionaries); each key-value pair in `kwargs`
-        corresponds to one steno entry.
-
-        :type args: Iterable[Iterable[Tuple[Tuple[str], str]]
-        :type kwargs: Iterable[Tuple[Tuple[str], str]]
+.. autoclass:: StenoDictionary
+    :members:
 
     The following methods are available to perform various lookup functionality:
-
-    .. method:: __getitem__(key)
-
-        Returns the translation for the steno outline `key`, or raises a
-        ``KeyError`` if it is not in the dictionary.
-
-        :type key: Tuple[str]
-
-    .. method:: __setitem__(key, value)
-
-        Sets the translation for the steno outline `key` to `value`.
-        Fails if the dictionary is read-only.
-
-        :type key: Tuple[str]
-        :type value: str
-
-    .. method:: __delitem__(key)
-
-        Deletes the translation for the steno outline `key`.
-        Fails if the dictionary is read-only.
-
-        :type key: Tuple[str]
-
-    .. method:: __contains__(key)
-
-        Returns ``True`` if the dictionary contains a translation for the
-        steno outline `key`.
-
-        :type key: Tuple[str]
-
-    .. method:: get(key[, fallback=None])
-
-        Returns the translation for the steno outline `key`, or `fallback` if
-        it is not in the dictionary.
-
-        :type key: Tuple[str]
-
-    .. attribute:: reverse
-
-        A dictionary mapping translations to possible steno outlines.
-
-        :type: Dict[str, List[Tuple[str]]]
-
-    .. attribute:: casereverse
-
-        A case-insensitive version of :attr:`reverse`.
 
     .. method:: reverse_lookup(value)
 
@@ -274,10 +165,6 @@ configured by the user.
         Like :meth:`reverse_lookup`, but performs a case-insensitive lookup.
 
     You can also access the longest key across all dictionaries:
-
-    .. attribute:: longest_key
-
-        The longest key across all dictionaries.
 
     .. attribute:: longest_key_callbacks
 
