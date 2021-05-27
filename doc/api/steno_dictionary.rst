@@ -20,6 +20,12 @@ configured by the user.
 
     The following methods are available to perform various lookup functionality:
 
+    .. automethod:: __getitem__
+    .. automethod:: __setitem__
+    .. automethod:: __delitem__
+    .. automethod:: __contains__
+    .. automethod:: get
+    
     .. method:: reverse_lookup(value)
 
         Returns the list of steno outlines that translate to `value`.
