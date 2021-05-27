@@ -9,7 +9,14 @@ to look up possible translations across multiple dictionaries, which can be
 configured by the user.
 
 .. autoclass:: StenoDictionary
-    :members:
+
+   
+    .. automethod:: create
+    .. automethod:: load
+    .. automethod:: save
+    .. automethod:: clear
+    .. automethod:: items
+    .. automethod:: update
 
     The following methods are available to perform various lookup functionality:
 
@@ -28,34 +35,17 @@ configured by the user.
     in the dictionary, to be used to automatically filter out some dictionaries
     to speed up lookups.
 
-    .. attribute:: longest_key
+    .. autoproperty:: longest_key
+    .. automethod:: add_longest_key_listener
+    .. automethod:: remove_longest_key_listener
 
-        The number of strokes in the longest key in this dictionary.
-
-    .. method:: add_longest_key_listener(callback)
-
-        Adds a `callback` that gets called when the :attr:`longest_key` in a
-        dictionary changes, such as when entries are added or removed.
-        `callback` is called with the new longest key as a parameter.
-
-    .. method:: remove_longest_key_listener(callback)
-
-        Removes `callback` if it has been registered as a callback for
-        changes to :attr:`longest_key`. `callback` is called with the new
-        longest key as a parameter.
 
     In addition, dictionary implementors *should* implement the following
     methods for reading and writing to dictionary files:
 
-    .. method:: _load(filename)
+    .. automethod:: _load
+    .. automethod:: _save
 
-        Reads the dictionary at `filename` and loads its contents into
-        the current dictionary. This is only called when the dictionary is
-        first initialized so it is guaranteed to be empty.
-
-    .. method:: _save(filename)
-
-        Writes the contents of the dictionary to `filename`.
 
 .. class:: StenoDictionaryCollection([dicts=None])
 

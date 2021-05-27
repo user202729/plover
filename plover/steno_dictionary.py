@@ -106,15 +106,23 @@ class StenoDictionary:
         self.timestamp = resource_timestamp(self.path)
 
     def _load(self, filename):
+        """
+        Reads the dictionary at `filename` and loads its contents into
+        the current dictionary. This is only called when the dictionary is
+        first initialized so it is guaranteed to be empty.
+        """
         raise NotImplementedError()
 
     def _save(self, filename):
+        """
+        Writes the contents of the dictionary to `filename`.
+        """
         raise NotImplementedError()
 
     @property
     def longest_key(self):
         # type: () -> int
-        """The length of the longest key in the dict."""
+        """The number of strokes in the longest key in this dictionary. """
         return self._longest_key
 
     def __len__(self):
@@ -245,9 +253,19 @@ class StenoDictionary:
             callback(longest_key)
 
     def add_longest_key_listener(self, callback):
+        """
+        Adds a `callback` that gets called when the :attr:`longest_key` in a
+        dictionary changes, such as when entries are added or removed.
+        `callback` is called with the new longest key as a parameter.
+        """
         self._longest_listener_callbacks.add(callback)
 
     def remove_longest_key_listener(self, callback):
+        """
+        Removes `callback` if it has been registered as a callback for
+        changes to :attr:`longest_key`. `callback` is called with the new
+        longest key as a parameter.
+        """
         self._longest_listener_callbacks.remove(callback)
 
 
