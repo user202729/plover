@@ -9,6 +9,10 @@ A steno dictionary maps sequences of steno strokes to translations.
 
 import collections
 import os
+import typing
+
+if typing.TYPE_CHECKING:
+    from typing import Iterable, Tuple, Optional
 
 from plover.resource import ASSET_SCHEME, resource_filename, resource_timestamp, resource_update
 
@@ -22,7 +26,7 @@ class StenoDictionary:
     Attributes:
         timestamp (int): The Unix timestamp in seconds when the file was last loaded or saved,
             used to detect external changes.
-        path (typing.Optional[str]): The path to the dictionary file.
+        path (Optional[str]): The path to the dictionary file.
         reverse (Dict[str, List[Tuple[str, ...]]]):
             A dictionary mapping translations to possible steno outlines.
         casereverse (Dict[str, List[Tuple[str, ...]]]):
@@ -156,7 +160,7 @@ class StenoDictionary:
         return self._dict.items()
 
     def update(self, *args, **kwargs):
-        # type: (*Iterable[Tuple[Tuple[str, ...], str], **Tuple[Tuple[str, ...], str])
+        # type: (*Iterable[Tuple[Tuple[str, ...], str]], **Tuple[Tuple[str, ...], str]) -> None
         """
         Adds the entries provided in `args` and `kwargs` to the dictionary.
         Each item in `args` is an iterable containing steno entries (perhaps

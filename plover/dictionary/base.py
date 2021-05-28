@@ -12,6 +12,9 @@ import functools
 import threading
 import typing
 
+if typing.TYPE_CHECKING:
+    from plover.steno_dictionary import StenoDictionary
+
 from plover.registry import registry
 
 
