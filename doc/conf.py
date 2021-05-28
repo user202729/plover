@@ -32,7 +32,6 @@ extensions = [
   'sphinxcontrib.yt',
   'sphinx.ext.autodoc',
   'sphinx.ext.napoleon',
-  'sphinx_autodoc_typehints',
 ]
 
 templates_path = ['_templates']
