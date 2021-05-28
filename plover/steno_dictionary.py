@@ -27,6 +27,8 @@ class StenoDictionary:
         timestamp (int): The Unix timestamp in seconds when the file was last loaded or saved,
             used to detect external changes.
         path (Optional[str]): The path to the dictionary file.
+
+            Except in testing, this attribute can be assumed to be not ``None``.
         reverse (Dict[str, List[Tuple[str, ...]]]):
             A dictionary mapping translations to possible steno outlines.
         casereverse (Dict[str, List[Tuple[str, ...]]]):
