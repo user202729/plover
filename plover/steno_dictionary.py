@@ -12,7 +12,7 @@ import os
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Iterable, Tuple, Optional
+    from typing import Iterable, Tuple, Optional, Dict
 
 from plover.resource import ASSET_SCHEME, resource_filename, resource_timestamp, resource_update
 
@@ -36,7 +36,11 @@ class StenoDictionary:
         enabled (bool):
             ``True`` if the dictionary is enabled, which means Plover can use it to
             look up translations, ``False`` otherwise.
+        _dict (Dict[Tuple[str, ...], str]):
+            The internal storage of dictionary items.
 
+            It's recommended to use :meth:`__getitem__` and similar methods instead of
+            accessing this attribute directly.
     """
 
     readonly = False
@@ -47,6 +51,12 @@ class StenoDictionary:
     """
 
     def __init__(self):
+        """
+        Constructor.
+
+        Normally this should not be used directly, instead :meth:`create` or :meth:`load` of a subclass
+        should be used (in that case :attr:`path` will not be ``None``)
+        """
         self._dict = {}
         self._longest_key_length = 0
         self._longest_listener_callbacks = set()
@@ -132,9 +142,15 @@ class StenoDictionary:
         return self._longest_key
 
     def __len__(self):
+        # type: () -> int
+        """
+        """
         return self._dict.__len__()
 
     def __iter__(self):
+        # type: () -> Iterable[Tuple[Tuple[str, ...], str]]
+        """
+        """
         return self._dict.__iter__()
 
     def __getitem__(self, key):

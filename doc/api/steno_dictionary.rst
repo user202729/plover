@@ -20,6 +20,8 @@ configured by the user.
 
     The following methods are available to perform various lookup functionality:
 
+    .. automethod:: __iter__
+    .. automethod:: __len__
     .. automethod:: __getitem__
     .. automethod:: __setitem__
     .. automethod:: __delitem__
