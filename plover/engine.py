@@ -77,17 +77,16 @@ def with_lock(func):
 class StenoEngine:
     """
     Attributes:
-        _config (Config):
         _is_running (bool):
         _queue ():
         _lock ():
         _machine ():
-        _machine_state ():
+        _machine_state (str):
         _machine_params ():
         _formatter (Formatter):
         _translator (Translator):
-        _dictionaries ():
-        _dictionaries_manager ():
+        _dictionaries (StenoDictionaryCollection):
+        _dictionaries_manager (DictionaryLoadingManager):
         _running_state ():
         _keyboard_emulation (plover.keyboardcontrol.KeyboardEmulation):
         _hooks (typing.Dict[str, typing.List[typing.Callable]]):
@@ -111,9 +110,24 @@ class StenoEngine:
     lookup
     quit
     '''.split()
+    """
+    A list of all the possible engine hooks. See :ref:`engine_hooks` below for
+    a list of valid hooks.
+
+    :meta hide-value:
+    """
 
     def __init__(self, config, keyboard_emulation):
-        self._config = config
+        # type: (Config, Any) -> None
+        """
+        """
+
+
+        self._config = config  # type: Config
+        """
+        An object containing the engine's configuration.
+        """
+
         self._is_running = False
         self._queue = Queue()
         self._lock = threading.RLock()
@@ -141,6 +155,13 @@ class StenoEngine:
         self._lock.__exit__(exc_type, exc_value, traceback)
 
     def _in_engine_thread(self):
+        # type: () -> bool
+        """
+        Returns whether we are currently in the same thread that the engine
+        is running on. This is useful because event listeners for machines and
+        others are run on separate threads, and we want to be able to run
+        engine events on the same thread as the main engine.
+        """
         raise NotImplementedError()
 
     def _same_thread_hook(self, func, *args, **kwargs):
@@ -150,6 +171,7 @@ class StenoEngine:
             self._queue.put((func, args, kwargs))
 
     def run(self):
+        # type: () -> None
         """
         Starts the steno engine, translating any strokes that are input.
         """
@@ -389,43 +411,93 @@ class StenoEngine:
         self._trigger_hook('translated', old, new)
 
     def send_backspaces(self, b):
+        """
+        Sends backspaces over keyboard output. `b` is the number of backspaces.
+        """
         if not self._is_running:
             return
         self._keyboard_emulation.send_backspaces(b)
         self._trigger_hook('send_backspaces', b)
 
     def send_string(self, s):
+        # type: (str) -> None
+        """
+        Sends the string `s` over keyboard output.
+        """
         if not self._is_running:
             return
         self._keyboard_emulation.send_string(s)
         self._trigger_hook('send_string', s)
 
     def send_key_combination(self, c):
+        # type: (str) -> None
+        """
+        Sends a keyboard combination over keyboard output.
+
+        Arguments:
+            c: a string representing a keyboard combination, for example ``Alt_L(Tab)``.
+        """
         if not self._is_running:
             return
         self._keyboard_emulation.send_key_combination(c)
         self._trigger_hook('send_key_combination', c)
 
     def send_engine_command(self, command):
+        # type: (str) -> None
+        """
+        Runs the specified Plover command, which can be either a built-in
+        command like ``set_config`` or one from an external plugin.
+
+        Arguments:
+            command: a string containing the command and its argument (if any),
+                separated by a colon. For example, ``lookup`` sends the
+                ``lookup`` command (the same as stroking ``{PLOVER:LOOKUP}``), and
+                ``run_shell:foo`` sends the ``run_shell`` command with the argument
+                ``foo``.
+        """
         suppress = not self._is_running
         suppress &= self._consume_engine_command(command)
         if suppress:
             self._machine.suppress_last_stroke(self._keyboard_emulation.send_backspaces)
 
     def toggle_output(self):
+        # type: () -> None
+        """
+        Toggles steno mode. See :attr:`output` to get the current state, or
+        :meth:`set_output` to set the state to a specific value.
+        """
         self._same_thread_hook(self._toggle_output)
 
     def set_output(self, enabled):
+        # type: (bool) -> None
+        """
+        Enables or disables steno mode. Set `enabled` to ``True`` to enable
+        steno mode, or ``False`` to disable it.
+        """
         self._same_thread_hook(self._set_output, enabled)
 
     @property
     @with_lock
     def machine_state(self):
+        """
+        The connection state of the current machine. One of ``stopped``,
+        ``initializing``, ``connected`` or ``disconnected``.
+
+        Returns:
+            str:
+        """
         return self._machine_state
 
     @property
     @with_lock
     def output(self):
+        # type: () -> bool
+        """
+        ..
+        
+        Returns:
+            bool: ``True`` if steno output is enabled, ``False`` otherwise.
+        """
         return self._is_running
 
     @output.setter
@@ -438,6 +510,8 @@ class StenoEngine:
         # type: () -> Dict[str, plover.config.ConfigValue]
         """
         TODO type annotation in comment does not work
+
+        Return the engine's configuration (:attr:`_config`) as a dictionary.
         """
         return self._config.as_dict()
 
@@ -450,15 +524,30 @@ class StenoEngine:
 
     @with_lock
     def __getitem__(self, setting):
+        """
+        Returns the value of the configuration property `setting`.
+        """
         return self._config[setting]
 
     def __setitem__(self, setting, value):
+        """
+        Sets the configuration property `setting` to `value`.
+        """
         self.config = {setting: value}
 
     def reset_machine(self):
+        """
+        Resets the machine state and Plover's connection with the machine, if
+        necessary, and loads all the configuration and dictionaries.
+        """
         self._same_thread_hook(self._update, reset_machine=True)
 
     def load_config(self):
+        # type: () -> bool
+        """
+        Loads the Plover configuration file and returns ``True`` if it was
+        loaded successfully, ``False`` if not.
+        """
         try:
             self._config.load()
         except Exception:
@@ -491,49 +580,87 @@ class StenoEngine:
         self.quit(-1)
 
     def join(self):
+        """
+        Joins any sub-threads if necessary and returns an exit code.
+        """
         return self.code
 
     @with_lock
     def lookup(self, translation):
+        """
+        Returns the first translation for the steno outline `translation` using
+        all the filters.
+        """
         return self._dictionaries.lookup(translation)
 
     @with_lock
     def raw_lookup(self, translation):
+        """
+        Like :meth:`lookup`, but without any of the filters.
+        """
         return self._dictionaries.raw_lookup(translation)
 
     @with_lock
     def lookup_from_all(self, translation):
+        """
+        Returns all translations for the steno outline `translation` using
+        all the filters.
+        """
         return self._dictionaries.lookup_from_all(translation)
 
     @with_lock
     def raw_lookup_from_all(self, translation):
+        """
+        Like :meth:`lookup_from_all`, but without any of the filters.
+        """
         return self._dictionaries.raw_lookup_from_all(translation)
 
     @with_lock
     def reverse_lookup(self, translation):
+        """
+        Returns the list of steno outlines that translate to `translation`.
+        """
         matches = self._dictionaries.reverse_lookup(translation)
         return [] if matches is None else matches
 
     @with_lock
     def casereverse_lookup(self, translation):
+        """
+        Like :meth:`reverse_lookup`, but performs a case-insensitive lookup.
+        """
         matches = self._dictionaries.casereverse_lookup(translation)
         return set() if matches is None else matches
 
     @with_lock
     def add_dictionary_filter(self, dictionary_filter):
+        """
+        Adds `dictionary_filter` to the list of dictionary filters.
+        """
         self._dictionaries.add_filter(dictionary_filter)
 
     @with_lock
     def remove_dictionary_filter(self, dictionary_filter):
+        """
+        Removes `dictionary_filter` from the list of dictionary filters.
+        """
         self._dictionaries.remove_filter(dictionary_filter)
 
     @with_lock
     def get_suggestions(self, translation):
+        # type: (str) -> List[plover.suggestions.Suggestion]
+        """
+        Returns a list of suggestions for the specified `translation`.
+
+        """
         return Suggestions(self._dictionaries).find(translation)
 
     @property
     @with_lock
     def translator_state(self):
+        """
+        A :class:`~plover.translation._State` object containing the
+        current state of the translator.
+        """
         return self._translator.get_state()
 
     @translator_state.setter
@@ -551,6 +678,10 @@ class StenoEngine:
     @property
     @with_lock
     def starting_stroke_state(self):
+        """
+        A :class:`StartingStrokeState` representing the initial state of the
+        formatter.
+        """
         return StartingStrokeState(self._formatter.start_attached,
                                    self._formatter.start_capitalized)
 
@@ -562,6 +693,11 @@ class StenoEngine:
 
     @with_lock
     def add_translation(self, strokes, translation, dictionary_path=None):
+        """
+        Adds a steno entry mapping the steno outline `strokes` to
+        `translation` in the dictionary at `dictionary_path`, if specified,
+        or the first writable dictionary.
+        """
         if dictionary_path is None:
             dictionary_path = self._dictionaries.first_writable().path
         self._dictionaries.set(strokes, translation, path=dictionary_path)
@@ -570,6 +706,12 @@ class StenoEngine:
     @property
     @with_lock
     def dictionaries(self):
+        """
+        A
+        :class:`~plover.steno_dictionary.StenoDictionaryCollection`
+        of all the dictionaries Plover has loaded for the current system.
+        This includes disabled dictionaries and dictionaries that failed to load.
+        """
         return self._dictionaries
 
     # Hooks.
@@ -585,8 +727,19 @@ class StenoEngine:
 
     @with_lock
     def hook_connect(self, hook, callback):
+        """
+        Adds `callback` to the list of handlers that are called when the `hook`
+        hook gets triggered. Raises a ``KeyError`` if `hook` is not in
+        :data:`HOOKS`.
+        """
         self._hooks[hook].append(callback)
 
     @with_lock
     def hook_disconnect(self, hook, callback):
+        """
+        Removes `callback` from the list of handlers that are called when
+        the `hook` hook is triggered. Raises a ``KeyError`` if `hook` is not in
+        :data:`HOOKS`, and a ``ValueError`` if `callback` was never added as
+        a handler in the first place.
+        """
         self._hooks[hook].remove(callback)

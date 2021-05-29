@@ -48,6 +48,8 @@ autodoc_type_aliases = {
         "ConfigKey": "plover.config.ConfigKey",
         "ConfigFullKey": "plover.config.ConfigFullKey",
         "ConfigValue": "plover.config.ConfigValue",
+        "Outline": "plover.steno_dictionary.Outline",
+        "FilterFunction": "plover.steno_dictionary.FilterFunction",
         }
 #autodoc_typehints = "both"  # does not work
 
