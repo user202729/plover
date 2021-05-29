@@ -387,7 +387,7 @@ class Config:
         Internal configuration object, used for loading and saving ``.cfg`` files.
         """
 
-        self._cache = {}  # type: Dict[str, Any]
+        self._cache = {}  # type: Dict[str, ConfigValue]
         """
         Mapping from configuration name to configuration value.
         Value cached after getting from ``_config`` object.
@@ -492,7 +492,7 @@ class Config:
         return key, opt
 
     def __getitem__(self, key):
-        # type: (ConfigKey) -> Any
+        # type: (ConfigKey) -> ConfigValue
         """
         Returns the value of the specified ``key`` in the cache, or in the
         full configuration if not available.
@@ -514,7 +514,7 @@ class Config:
         return value
 
     def __setitem__(self, key, value):
-        # type: (ConfigKey, typing.Any) -> None
+        # type: (ConfigKey, ConfigValue) -> None
         """
         Sets the property ``key`` in the configuration to the specified value.
 
@@ -527,7 +527,7 @@ class Config:
         self._cache[key] = value
 
     def as_dict(self):
-        # type: () -> typing.Dict[str, typing.Any]
+        # type: () -> typing.Dict[str, ConfigValue]
         """
         Returns the ``dict`` representation of the current state of the
         configuration.
