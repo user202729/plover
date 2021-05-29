@@ -146,7 +146,7 @@ class StenoDictionary:
         # type: (str) -> StenoDictionary
         """
         Loads a dictionary from the file at `resource` and returns the
-        dictionary object. If `resource` refers to an `:ref:`asset path<asset_paths>`
+        dictionary object. If `resource` refers to an :ref:`asset path<asset_paths>`
         or the file is not writable by the user, the dictionary will be
         read-only.
         """
