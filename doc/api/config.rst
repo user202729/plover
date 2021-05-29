@@ -3,6 +3,7 @@
 
 .. automodule:: plover.config
     :members:
+    :private-members:
 
     (**TODO** exclude auto members from :class:`ConfigOption`?)
 

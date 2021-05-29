@@ -32,6 +32,7 @@ extensions = [
   'sphinxcontrib.yt',
   'sphinx.ext.autodoc',
   'sphinx.ext.napoleon',
+  'sphinx.ext.autosectionlabel',
 ]
 
 templates_path = ['_templates']
@@ -43,6 +44,11 @@ autodoc_mock_imports = []
 # -- Options for Sphinx autodoc ----------------------------------------------
 
 autodoc_typehints = "description"
+autodoc_type_aliases = {
+        "ConfigKey": "plover.config.ConfigKey",
+        "ConfigFullKey": "plover.config.ConfigFullKey",
+        "ConfigValue": "plover.config.ConfigValue",
+        }
 #autodoc_typehints = "both"  # does not work
 
 

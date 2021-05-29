@@ -87,10 +87,25 @@ class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
         return DictionaryConfig(**d)
 
 
-ConfigKey = typing.Union[str, typing.Tuple[str, ...]]
+ConfigFullKey = typing.Tuple[str, ...]
 """
+A full_key tuple, where the first item is the option name,
+and the rest are option-specific keys
+(such as ``('system_keymap', 'English Stenotype', 'Gemini PR')``).
 """
 
+ConfigKey = typing.Union[str, ConfigFullKey]
+"""
+A configuration key. It's either a string (such as ``translation_frame_opacity``), or
+:class:`ConfigFullKey`.
+
+See :ref:`Configuration Options`.
+"""
+
+ConfigValue = typing.Any
+"""
+A configuration value. Can be various different types.
+"""
 
 ConfigOption = namedtuple('ConfigOption', '''
                           name default
@@ -99,12 +114,12 @@ ConfigOption = namedtuple('ConfigOption', '''
                           ''')
 """
 Attributes:
-    name (str):
-    default (Callable[[Config, Any], Any]):
-    getter (Callable[[Config, :const:`ConfigKey`], Any]):
-    setter (Callable[[Config, ConfigKey, Any], None]):
-    validate (Callable[[Config, Any, Any], Any]):
-    full_key (Callable[[Config, Union[str, tuple]], tuple]):
+    name (str): Configuration option name. See :class:`ConfigKey` for more details.
+    default (Callable[[Config, ConfigKey], ConfigValue]):
+    getter (Callable[[Config, ConfigKey], ConfigValue]):
+    setter (Callable[[Config, ConfigKey, ConfigValue], None]):
+    validate (Callable[[Config, ConfigKey, ConfigValue], ConfigValue]):
+    full_key (Optional[Callable[[Config, ConfigKey], ConfigFullKey]]):
 """
 
 
@@ -116,7 +131,7 @@ class InvalidConfigOption(ValueError):
     """
 
     def __init__(self, raw_value, fixed_value, message=None):
-        # type: (typing.Any, typing.Any, str) -> None
+        # type: (ConfigValue, ConfigValue, str) -> None
         """
         Arguments:
             raw_value:
@@ -133,7 +148,7 @@ class InvalidConfigOption(ValueError):
 
 
 def raw_option(name, default, section, option, validate):
-    # type: (str, Any, str, Any, Callable) -> ConfigOption
+    # type: (str, ConfigValue, str, str, Callable) -> ConfigOption
     """
     """
     option = option or name
@@ -159,7 +174,7 @@ def json_option(name, default, section, option, validate):
     return ConfigOption(name, default, getter, setter, validate, None)
 
 def int_option(name, default, minimum, maximum, section, option=None):
-    # type: (str, int, int, int, str, Any) -> ConfigOption
+    # type: (str, int, int, int, str, str) -> ConfigOption
     """
     """
     option = option or name
@@ -360,20 +375,30 @@ class Config:
     """
     An object containing the entire Plover configuration. The config object
     maintains a cache for any changes that are made while Plover is running.
-
-    Attributes:
-        _OPTIONS (OrderedDict[str, ConfigOption]): Mapping of option name to :class:`ConfigOption` objects.
-        _config (configparser.RawConfigParser): Internal configuration object, used for loading
-            and saving ``.cfg`` files.
-        _cache (Dict[str, Any]): Mapping from configuration name to configuration value.
-            Used by :meth:`__getitem__`.
     """
 
     def __init__(self, path=None):
-        self._config = None
-        self._cache = {}
+        # type: (Optional[str]) -> None
+        """
+        """
+
+        self._config = None  # type: configparser.RawConfigParser
+        """
+        Internal configuration object, used for loading and saving ``.cfg`` files.
+        """
+
+        self._cache = {}  # type: Dict[str, Any]
+        """
+        Mapping from configuration name to configuration value.
+        Value cached after getting from ``_config`` object.
+        Used by :meth:`__getitem__`.
+        """
+
         # A convenient place for other code to store a file name.
-        self.path = path
+        self.path = path  # type: Optional[str]
+        """
+        """
+
         self.clear()
 
     def load(self):
@@ -405,8 +430,11 @@ class Config:
                 self._config.write(fp)
 
     def _set(self, section, option, value):
-        # type: (str, str, Any) -> None
+        # type: (str, str, ConfigValue) -> None
         """
+        Set option in the internal config object.
+
+        The parameters are the same as in :meth:`configparser.RawConfigParser.set`.
         """
 
         if not self._config.has_section(section):
@@ -442,20 +470,20 @@ class Config:
         plugin_option('system_name', 'system', DEFAULT_SYSTEM_NAME, 'System', 'name'),
         system_keymap_option(),
         dictionaries_option(),
-    ])
+    ])  # type: OrderedDict[str, ConfigOption]
+    """
+    Mapping of option name to :class:`ConfigOption` objects.
+
+    :meta hide-value:
+    """
 
     def _lookup(self, key):
-        # type: (typing.Union[str, tuple]) -> typing.Tuple[typing.Union[str, tuple], ConfigOption]
+        # type: (ConfigKey) -> typing.Tuple[ConfigFullKey, ConfigOption]
         """
         Get the :class:`ConfigOption` object from the option name.
 
         Arguments:
-            key: the option name. Can be either:
-
-              - a string (such as ``translation_frame_opacity``), or
-              - a full_key tuple, where the first item is the option name,
-                and the rest are option-specific keys
-                (such as ``('system_keymap', 'English Stenotype', 'Gemini PR')``).
+            key: the option name.
         """
         name = key[0] if isinstance(key, tuple) else key
         opt = self._OPTIONS[name]
@@ -464,13 +492,13 @@ class Config:
         return key, opt
 
     def __getitem__(self, key):
-        # type: (typing.Union[str, tuple]) -> Any
+        # type: (ConfigKey) -> Any
         """
         Returns the value of the specified ``key`` in the cache, or in the
         full configuration if not available.
 
         Arguments:
-            key: see ``key`` parameter of :meth:`_lookup`.
+            key:
         """
         key, opt = self._lookup(key)
         if key in self._cache:
@@ -486,12 +514,12 @@ class Config:
         return value
 
     def __setitem__(self, key, value):
-        # type: (typing.Union[str, tuple], typing.Any) -> None
+        # type: (ConfigKey, typing.Any) -> None
         """
         Sets the property ``key`` in the configuration to the specified value.
 
         Arguments:
-            key: see ``key`` parameter of :meth:`_lookup`.
+            key: The option name.
         """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)
