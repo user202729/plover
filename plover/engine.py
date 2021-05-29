@@ -187,6 +187,9 @@ class StenoEngine:
         self._trigger_hook('dictionaries_loaded', self._dictionaries)
 
     def _update(self, config_update=None, full=False, reset_machine=False):
+        # type: (None, bool, bool) -> None
+        """
+        """
         original_config = self._config.as_dict()
         # Update configuration.
         if config_update is not None:
@@ -435,6 +438,9 @@ class StenoEngine:
 
     @config.setter
     def config(self, update):
+        # type: (Dict[str, Any]) -> None
+        """
+        """
         self._same_thread_hook(self._update, config_update=update)
 
     @with_lock

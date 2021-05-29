@@ -1,23 +1,11 @@
 ``plover.config`` -- Configuration
 ==================================
 
-.. py:module:: plover.config
-
-This modules handles reading and writing Plover's configuration files, as well
-as updating the configuration on-the-fly while Plover is running.
-
-.. autoclass:: Config
-    :members:
-    :private-members:
-    :special-members:
-    :inherited-members:
-
-.. autoexception:: InvalidConfigOption
-    :special-members: __init__, __str__
+.. automodule:: plover.config
     :members:
 
-.. autoclass:: DictionaryConfig
-   :members:
+    (**TODO** exclude auto members from :class:`ConfigOption`?)
+
 
 
 Configuration Options

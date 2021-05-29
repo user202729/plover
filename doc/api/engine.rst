@@ -228,32 +228,45 @@ calling :meth:`engine.hook_connect<StenoEngine.hook_connect>` and passing the
 name of one of the hooks below and a function, you can write handlers that are
 called when Plover hooks get triggered.
 
-.. js:function:: stroked(steno_keys)
+.. py:function:: stroked(steno_keys)
 
-    The user just sent a stroke. `steno_keys` is a list of steno keys, for
-    example ``['K-', 'A-', '-T']``.
+    The user just sent a stroke. 
 
-.. js:function:: translated(old, new)
+    :param List[str] steno_keys: a list of steno keys, for example ``['K-', 'A-', '-T']``.
+
+.. py:function:: translated(old, new)
+
+    The :class:`~plover.formatting.Formatter` has just formatted a sequence of
+    :class:`~plover.translation.Translation` objects
+    (with :meth:`~plover.formatting.Formatter.format`) and is about to send the output.
+   
+    :param List[_Action] old: The list of old actions to be undone.
+    :param List[_Action] new: The list of new actions to be done.
 
 .. js:function:: machine_state_changed(machine_type, machine_state)
 
     Either the machine type was changed by the user, or the connection state
-    of the machine changed. `machine_type` is the name of the machine
-    (e.g. ``Gemini PR``), and `machine_state` is one of ``stopped``,
-    ``initializing``, ``connected`` or ``disconnected``.
+    of the machine changed.
+
+    :param str machine_type: the name of the machine (e.g. ``Gemini PR``)
+    :param str machine_state: one of ``stopped``, ``initializing``, ``connected`` or ``disconnected``.
 
 .. js:function:: output_changed(enabled)
 
-    The user requested to either enable or disable steno output. `enabled` is
-    ``True`` if output is enabled, ``False`` otherwise.
+    The user requested to either enable or disable steno output. 
+
+    :param bool enabled: ``True`` if output is enabled, ``False`` otherwise.
 
 .. js:function:: config_changed(config)
 
     The configuration was changed, or it was loaded for the first time.
-    `config` is a dictionary containing *only* the changed fields. Call the
+
+    Call the
     hook function with the
     :meth:`StenoEngine.config<plover.engine.StenoEngine.config>`
     to initialize your plugin based on the full configuration.
+
+    :param Dict[] config: a dictionary containing *only* the changed fields.
 
 .. js:function:: dictionaries_loaded(dictionaries)
 

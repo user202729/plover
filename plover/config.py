@@ -1,13 +1,19 @@
 # Copyright (c) 2010-2011 Joshua Harlan Lifton.
 # See LICENSE.txt for details.
 
-"""Configuration management."""
+"""
+This modules handles reading and writing Plover's configuration files, as well
+as updating the configuration on-the-fly while Plover is running.
+"""
 
 from collections import ChainMap, namedtuple, OrderedDict
 import configparser
 import json
 import re
 import typing
+
+if typing.TYPE_CHECKING:
+    from typing import Optional, Any, Callable, Dict
 
 from plover.exception import InvalidConfigurationError
 from plover.machine.keymap import Keymap
@@ -81,11 +87,26 @@ class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
         return DictionaryConfig(**d)
 
 
+ConfigKey = typing.Union[str, typing.Tuple[str, ...]]
+"""
+"""
+
+
 ConfigOption = namedtuple('ConfigOption', '''
                           name default
                           getter setter
                           validate full_key
                           ''')
+"""
+Attributes:
+    name (str):
+    default (Callable[[Config, Any], Any]):
+    getter (Callable[[Config, :const:`ConfigKey`], Any]):
+    setter (Callable[[Config, ConfigKey, Any], None]):
+    validate (Callable[[Config, Any, Any], Any]):
+    full_key (Callable[[Config, Union[str, tuple]], tuple]):
+"""
+
 
 class InvalidConfigOption(ValueError):
     """
@@ -112,6 +133,9 @@ class InvalidConfigOption(ValueError):
 
 
 def raw_option(name, default, section, option, validate):
+    # type: (str, Any, str, Any, Callable) -> ConfigOption
+    """
+    """
     option = option or name
     def getter(config, key):
         return config._config[section][option]
@@ -135,6 +159,9 @@ def json_option(name, default, section, option, validate):
     return ConfigOption(name, default, getter, setter, validate, None)
 
 def int_option(name, default, minimum, maximum, section, option=None):
+    # type: (str, int, int, int, str, Any) -> ConfigOption
+    """
+    """
     option = option or name
     def getter(config, key):
         return config._config[section].getint(option)
@@ -180,6 +207,10 @@ def plugin_option(name, plugin_type, default, section, option=None):
     return raw_option(name, default, section, option, validate)
 
 def opacity_option(name, section, option=None):
+    # type: (str, str, str) -> ConfigOption
+    """
+    """
+    
     return int_option(name, 100, 0, 100, section, option)
 
 def path_option(name, default, section, option=None):
@@ -329,6 +360,13 @@ class Config:
     """
     An object containing the entire Plover configuration. The config object
     maintains a cache for any changes that are made while Plover is running.
+
+    Attributes:
+        _OPTIONS (OrderedDict[str, ConfigOption]): Mapping of option name to :class:`ConfigOption` objects.
+        _config (configparser.RawConfigParser): Internal configuration object, used for loading
+            and saving ``.cfg`` files.
+        _cache (Dict[str, Any]): Mapping from configuration name to configuration value.
+            Used by :meth:`__getitem__`.
     """
 
     def __init__(self, path=None):
@@ -367,6 +405,10 @@ class Config:
                 self._config.write(fp)
 
     def _set(self, section, option, value):
+        # type: (str, str, Any) -> None
+        """
+        """
+
         if not self._config.has_section(section):
             self._config.add_section(section)
         self._config.set(section, option, value)
@@ -400,17 +442,19 @@ class Config:
         plugin_option('system_name', 'system', DEFAULT_SYSTEM_NAME, 'System', 'name'),
         system_keymap_option(),
         dictionaries_option(),
-    ])  # type: OrderedDict[str, ConfigOption]
+    ])
 
     def _lookup(self, key):
         # type: (typing.Union[str, tuple]) -> typing.Tuple[typing.Union[str, tuple], ConfigOption]
         """
-        Get the ConfigOption object from the option name.
+        Get the :class:`ConfigOption` object from the option name.
 
         Arguments:
-            key: the option name as a string (such as ``translation_frame_opacity``),
-                or a full_key tuple, where the first item is the option name,
-                and the rest are option-specific identifiers
+            key: the option name. Can be either:
+
+              - a string (such as ``translation_frame_opacity``), or
+              - a full_key tuple, where the first item is the option name,
+                and the rest are option-specific keys
                 (such as ``('system_keymap', 'English Stenotype', 'Gemini PR')``).
         """
         name = key[0] if isinstance(key, tuple) else key
@@ -420,9 +464,13 @@ class Config:
         return key, opt
 
     def __getitem__(self, key):
+        # type: (typing.Union[str, tuple]) -> Any
         """
         Returns the value of the specified ``key`` in the cache, or in the
         full configuration if not available.
+
+        Arguments:
+            key: see ``key`` parameter of :meth:`_lookup`.
         """
         key, opt = self._lookup(key)
         if key in self._cache:
@@ -441,6 +489,9 @@ class Config:
         # type: (typing.Union[str, tuple], typing.Any) -> None
         """
         Sets the property ``key`` in the configuration to the specified value.
+
+        Arguments:
+            key: see ``key`` parameter of :meth:`_lookup`.
         """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)
