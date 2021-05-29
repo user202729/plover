@@ -7,6 +7,7 @@ import shutil
 import threading
 import typing
 
+import plover
 from plover import log, system
 from plover.dictionary.loading_manager import DictionaryLoadingManager
 from plover.exception import DictionaryLoaderException
@@ -434,11 +435,15 @@ class StenoEngine:
     @property
     @with_lock
     def config(self):
+        # type: () -> Dict[str, plover.config.ConfigValue]
+        """
+        TODO type annotation in comment does not work
+        """
         return self._config.as_dict()
 
     @config.setter
     def config(self, update):
-        # type: (Dict[str, Any]) -> None
+        # type: (Dict[str, plover.config.ConfigValue]) -> None
         """
         """
         self._same_thread_hook(self._update, config_update=update)
