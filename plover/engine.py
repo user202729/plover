@@ -670,6 +670,18 @@ class StenoEngine:
 
     @with_lock
     def clear_translator_state(self, undo=False):
+        # type: (bool) -> None
+        """Reset the state of the translator.
+
+        See also :meth:`plover.translation.Translator.clear_state`.
+
+        Arguments:
+            undo: Whether to undo the existing translations (usually by sending backspaces).
+
+                Note that there's only a limited number of actions stored in the
+                :attr:`translator_state`, so even if this is set to `True`, some actions
+                might not be undone.
+        """
         if undo:
             state = self._translator.get_state()
             self._formatter.format(state.translations, (), None)
