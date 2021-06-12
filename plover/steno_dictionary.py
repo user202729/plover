@@ -66,16 +66,24 @@ class StenoDictionary:
         """
         The internal storage of dictionary items.
 
-        It's recommended to use :meth:`__getitem__` and similar methods instead of
-        accessing this attribute directly.
+        It's recommended to use :meth:`__getitem__`, :meth:`__setitem__`, :meth:`update` or
+        :meth:`__delitem__` instead of accessing this attribute directly.
         """
 
         self._longest_key_length = 0  # type: int
         """
+		The internal storage for the longest key length.
+
+		It's recommended to use :attr:`_longest_key` (for subclasses), or :attr:`longest_key`
+		(outside the class) (which triggers the :attr:`_longest_listener_callbacks`)
         """
 
-        self._longest_listener_callbacks = set()  # type: Set
+        self._longest_listener_callbacks = set()  # type: Set[Callable]
         """
+		Internal storage for the function that will be called when :attr:`longest_key` changes.
+		
+		Do not use this directly, instead use :meth:`add_longest_key_listener`
+		and :meth:`remove_longest_key_listener`.
         """
 
 
@@ -188,7 +196,10 @@ class StenoDictionary:
     @property
     def longest_key(self):
         # type: () -> int
-        """The number of strokes in the longest key in this dictionary. """
+        """The number of strokes in the longest key in this dictionary. 
+		
+		This property is read-only. Subclasses can modify the value of :attr:`_longest_key`.
+		"""
         return self._longest_key
 
     def __len__(self):
@@ -265,6 +276,8 @@ class StenoDictionary:
         """
         Sets the translation for the steno outline `key` to `value`.
         Fails if the dictionary is read-only.
+
+        Automatically update the value of :attr:`_longest_key`.
         """
         assert not self.readonly
         if key in self:
@@ -287,6 +300,8 @@ class StenoDictionary:
         """
         Deletes the translation for the steno outline `key`.
         Fails if the dictionary is read-only.
+
+        Automatically update the value of :attr:`_longest_key`.
         """
         assert not self.readonly
         value = self._dict.pop(key)
@@ -322,6 +337,8 @@ class StenoDictionary:
 
     @property
     def _longest_key(self):
+        """
+        """
         return self._longest_key_length
 
     @_longest_key.setter
@@ -499,7 +516,7 @@ class StenoDictionaryCollection:
     def casereverse_lookup(self, value):
         # type: (str) -> Set[Outline]
         """
-            Like :meth:`reverse_lookup`, but performs a case-insensitive lookup.
+        Like :meth:`reverse_lookup`, but performs a case-insensitive lookup.
         You can also access the longest key across all dictionaries:
         """
         keys = set()

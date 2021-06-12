@@ -47,6 +47,7 @@ configured by the user.
     in the dictionary, to be used to automatically filter out some dictionaries
     to speed up lookups.
 
+    .. autoproperty:: _longest_key
     .. autoproperty:: longest_key
     .. automethod:: add_longest_key_listener
     .. automethod:: remove_longest_key_listener
