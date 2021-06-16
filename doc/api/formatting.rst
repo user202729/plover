@@ -3,3 +3,4 @@
 
 .. automodule:: plover.formatting
    :members:
+   :private-members:

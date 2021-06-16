@@ -8,6 +8,7 @@
     (**TODO** exclude auto members from :class:`ConfigOption`?)
 
 
+.. _configuration-options:
 
 Configuration Options
 ---------------------

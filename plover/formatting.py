@@ -335,13 +335,6 @@ class Formatter:
 
     - send_engine_command: Takes a string which names the special command to
       execute.
-
-    Attributes:
-        spaces_after (bool):
-        last_output_spaces_after (bool):
-        start_capitalized (bool):
-        start_attached (bool):
-        _listeners (typing.Set[Callable]):
     """
 
     output_type = namedtuple(
@@ -349,6 +342,8 @@ class Formatter:
                    'send_engine_command'])
     """
     Helper type to store the functions to call on the output class internally.
+
+    See the documentation of :class:`Formatter`.
 
     Attributes:
         send_backspaces ():
@@ -359,11 +354,36 @@ class Formatter:
 
     def __init__(self):
         self.set_output(None)
-        self.spaces_after = False
-        self.last_output_spaces_after = False
-        self.start_capitalized = False
-        self.start_attached = False
-        self._listeners = set()
+        self.spaces_after = False  # type: bool
+        """
+        The ``spaces_after`` property of the next output (next :meth:`format` call).
+
+        This property can be modified directly or with :meth:`set_space_placement`.
+        """
+        self.last_output_spaces_after = False  # type: bool
+        """
+        The ``spaces_after`` property of the last output (last :meth:`format` call).
+
+        See also: :meth:`set_space_placement`.
+        """
+        self.start_capitalized = False  # type: bool
+        """
+        See ``start_capitalized`` in :ref:`configuration-options`.
+
+        This property can be modified directly (the formatter object is stateless).
+        """
+        self.start_attached = False  # type: bool
+        """
+        See ``start_attached`` in :ref:`configuration-options`.
+
+        This property can be modified directly (the formatter object is stateless).
+        """
+        self._listeners = set()  # type: typing.Set[Callable]
+        """
+        Internal set of listener for translation outputs.
+        See :meth:`add_listener` and :meth:`remove_listener`.
+        """
+        
 
     def add_listener(self, callback):
         """Add a listener for translation outputs.
@@ -377,12 +397,20 @@ class Formatter:
         self._listeners.add(callback)
 
     def remove_listener(self, callback):
-        """Remove a listener added by add_listener."""
+        """Remove a listener added by :meth:`add_listener`."""
         self._listeners.remove(callback)
 
     def set_output(self, output):
         # type: (typing.Any) -> None
-        """Set the output class."""
+        """Set the output class.
+
+        Parameters:
+            output: the output class.
+
+                The type should be compatible with :data:`Formatting.output_type`.
+
+                There can be missing attributes, which is automatically replaced with no-operation.
+        """
         noop = lambda x: None
         output_type = self.output_type
         fields = output_type._fields
@@ -390,8 +418,15 @@ class Formatter:
 
     def set_space_placement(self, s):
         # type: (str) -> None
-        # Set whether spaces will be inserted
-        # before the output or after the output
+        """
+        Set whether spaces will be inserted
+        before the output or after the output.
+
+        Parameters:
+            s: either ``Before Output`` or ``After Output``.
+                See ``space_placement`` in :ref:`configuration-options`.
+
+        """
         self.spaces_after = bool(s == 'After Output')
 
     def format(self, undo, do, prev):
@@ -476,23 +511,25 @@ class Formatter:
 
 class TextFormatter:
     """Format a series of action into text.
-    
-    Attributes:
-        spaces_after (bool):
-        replaced_text (str):
-        appended_text (str):
-        trailing_space (str):
-
     """
 
     def __init__(self, spaces_after):
         # type: (bool) -> None
-        self.spaces_after = spaces_after
-        # Initial replaced text.
-        self.replaced_text = ''
-        # New appended text.
-        self.appended_text = ''
-        self.trailing_space = ''
+        self.spaces_after = spaces_after  # type: bool
+        """
+        """
+        self.replaced_text = ''  # type: str
+        """
+        Initial replaced text.
+        """
+        self.appended_text = ''  # type: str
+        """
+        New appended text.
+        """
+        self.trailing_space = ''  # type: str
+        """
+        """
+
 
     def _render_action(self, action):
         # type: (_Action) -> None
@@ -542,6 +579,7 @@ class TextFormatter:
                 self._render_action(action)
 
     def reset(self, trailing_space):
+        # type: (str) -> None
         """Reset current state (rendered text)."""
         self.replaced_text = ''
         self.appended_text = trailing_space
@@ -552,17 +590,21 @@ class OutputHelper:
 
     This class figures out the current state, compares it to the new output and
     optimizes away extra backspaces and typing.
-
-    Attributes:
-        output (:data:`Formatter.output_type`): The object that contains the functions
-            to call with the output.
-        before (TextFormatter):
-        after (TextFormatter):
     """
     def __init__(self, output, before_spaces_after, after_spaces_after):
+        # type: (Formatter.output_type, bool, bool) -> None
         self.output = output
-        self.before = TextFormatter(before_spaces_after)
-        self.after = TextFormatter(after_spaces_after)
+        """
+        The object that contains the functions to call with the output.
+
+        Type: (compatible with) :data:`Formatter.output_type`
+        """
+        self.before = TextFormatter(before_spaces_after)  # type: TextFormatter
+        """
+        """
+        self.after = TextFormatter(after_spaces_after)  # type: TextFormatter
+        """
+        """
 
     def flush(self):
         # FIXME:
@@ -619,8 +661,10 @@ class _Action:
     There are also other attributes that has the same name as the parameter names of
     :meth:`__init__`.
 
+    **Note**: for the documentation of the parameters, see :meth:`__init__`.
+
     Attributes:
-        DEFAULT (_Action):
+        DEFAULT (_Action): An empty action object.
 
 
     """
