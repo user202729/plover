@@ -245,6 +245,9 @@ class RetroFormatter:
         # type: (int, bool, re.Pattern) -> typing.List[str]
         """Return the last <count> words.
 
+        Note that if <count> is not a strictly positive integer,
+        the function will return all last words.
+
         Arguments:
             count:
             strip:
