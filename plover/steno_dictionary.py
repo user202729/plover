@@ -9,6 +9,33 @@ A steno dictionary maps sequences of steno strokes to translations.
 
 import collections
 import os
+import typing
+
+try:
+    __sphinx_build__
+except NameError:
+    __sphinx_build__ = False
+
+if typing.TYPE_CHECKING or __sphinx_build__:
+    from typing import Iterable, Tuple, Optional, Dict, List, Set, Sequence, Callable
+
+    Outline = typing.Tuple[str, ...]
+    """
+    An outline.
+    """
+
+    FilterFunction = Callable[[Outline, str], bool]
+    """
+    A filter function.
+
+    Each filter is a function that
+    takes a steno outline (:class:`Outline`) and a translation (``str``)
+    and returns a Boolean value.
+    If a filter returns ``True``, the corresponding entry is **removed**
+    from lookup results.
+    """
+
+    
 
 from plover.resource import ASSET_SCHEME, resource_filename, resource_timestamp, resource_update
 
@@ -18,28 +45,87 @@ class StenoDictionary:
 
     This dictionary maps immutable sequences to translations and tracks the
     length of the longest key.
-
-    Attributes:
-    longest_key -- A read only property holding the length of the longest key.
-    timestamp -- File last modification time, used to detect external changes.
-
     """
 
-    # False if class support creation.
-    readonly = False
+    readonly = False  # type: bool
+    """
+    ``True`` if the dictionary is read-only, either because the dictionary
+    class does not support it or the file itself is read-only.
+    For most dictionaries this will be ``False``.
+    """
 
     def __init__(self):
-        self._dict = {}
-        self._longest_key_length = 0
-        self._longest_listener_callbacks = set()
-        self.reverse = collections.defaultdict(list)
+        """
+        Constructor.
+
+        Normally this should not be used directly, instead :meth:`create` or :meth:`load` of a subclass
+        should be used (in that case :attr:`path` will not be ``None``)
+        """
+
+        self._dict = {}  # type: Dict[Outline, str]
+        """
+        The internal storage of dictionary items.
+
+        It's recommended to use :meth:`__getitem__`, :meth:`__setitem__`, :meth:`update` or
+        :meth:`__delitem__` instead of accessing this attribute directly.
+        """
+
+        self._longest_key_length = 0  # type: int
+        """
+		The internal storage for the longest key length.
+
+		It's recommended to use :attr:`_longest_key` (for subclasses), or :attr:`longest_key`
+		(outside the class) (which triggers the :attr:`_longest_listener_callbacks`)
+        """
+
+        self._longest_listener_callbacks = set()  # type: Set[Callable]
+        """
+		Internal storage for the function that will be called when :attr:`longest_key` changes.
+		
+		Do not use this directly, instead use :meth:`add_longest_key_listener`
+		and :meth:`remove_longest_key_listener`.
+        """
+
+
+        self.reverse = collections.defaultdict(list)  # type: Dict[str, List[Outline]]
+        """
+        A dictionary mapping translations to possible steno outlines.
+        """
+
         # Case-insensitive reverse dict
-        self.casereverse = collections.defaultdict(list)
-        self.filters = []
-        self.timestamp = 0
+        self.casereverse = collections.defaultdict(list)  # type: Dict[str, List[Outline]]
+        """
+        A case-insensitive version of :attr:`reverse`.
+        """
+
+        self.filters = []  # type: List[FilterFunction]
+        """
+        """
+        
+
+        self.timestamp = 0 # type: int
+        """
+        The Unix timestamp in seconds when the file was last loaded or saved,
+        used to detect external changes.
+        """
+
         self.readonly = False
-        self.enabled = True
-        self.path = None
+
+        self.enabled = True  # type: bool
+        """
+        ``True`` if the dictionary is enabled, which means Plover can use it to
+        look up translations, ``False`` otherwise.
+        """
+
+        self.path = None  # type: Optional[str]
+        """
+        The path to the dictionary file.
+
+        Except in testing, this attribute can be assumed to be not ``None``.
+        """
+
+
+
 
     def __str__(self):
         return '%s(%r)' % (self.__class__.__name__, self.path)
@@ -49,6 +135,13 @@ class StenoDictionary:
 
     @classmethod
     def create(cls, resource):
+        # type: (str) -> StenoDictionary
+        """
+        Creates a new empty steno dictionary, saved at the path `resource`.
+        If `resource` refers to an :ref:`asset path<asset_paths>` or the
+        dictionary class is read-only (i.e. :attr:`readonly` is true), this
+        call will fail.
+        """
         assert not resource.startswith(ASSET_SCHEME)
         if cls.readonly:
             raise ValueError('%s does not support creation' % cls.__name__)
@@ -58,6 +151,13 @@ class StenoDictionary:
 
     @classmethod
     def load(cls, resource):
+        # type: (str) -> StenoDictionary
+        """
+        Loads a dictionary from the file at `resource` and returns the
+        dictionary object. If `resource` refers to an :ref:`asset path<asset_paths>`
+        or the file is not writable by the user, the dictionary will be
+        read-only.
+        """
         filename = resource_filename(resource)
         timestamp = resource_timestamp(filename)
         d = cls()
@@ -71,32 +171,62 @@ class StenoDictionary:
         return d
 
     def save(self):
+        """
+        Saves the contents of the dictionary to the file it was loaded from.
+        This may need to be called after adding dictionary entries.
+        """
         assert not self.readonly
         with resource_update(self.path) as temp_path:
             self._save(temp_path)
         self.timestamp = resource_timestamp(self.path)
 
     def _load(self, filename):
+        """
+        Reads the dictionary at `filename` and loads its contents into
+        the current dictionary. This is only called when the dictionary is
+        first initialized so it is guaranteed to be empty.
+        """
         raise NotImplementedError()
 
     def _save(self, filename):
+        """
+        Writes the contents of the dictionary to `filename`.
+        """
         raise NotImplementedError()
 
     @property
     def longest_key(self):
-        """The length of the longest key in the dict."""
+        # type: () -> int
+        """The number of strokes in the longest key in this dictionary. 
+		
+		This property is read-only. Subclasses can modify the value of :attr:`_longest_key`.
+		"""
         return self._longest_key
 
     def __len__(self):
+        # type: () -> int
+        """
+        """
         return self._dict.__len__()
 
     def __iter__(self):
+        # type: () -> Iterable[Tuple[Outline, str]]
+        """
+        """
         return self._dict.__iter__()
 
     def __getitem__(self, key):
+        # type: (Outline) -> str
+        """
+        Returns the translation for the steno outline `key`, or raises a
+        ``KeyError`` if it is not in the dictionary.
+        """
         return self._dict.__getitem__(key)
 
     def clear(self):
+        """
+        Removes all entries in the dictionary.
+        """
         assert not self.readonly
         self._dict.clear()
         self.reverse.clear()
@@ -104,9 +234,20 @@ class StenoDictionary:
         self._longest_key = 0
 
     def items(self):
+        # type: () -> Iterable[Tuple[Outline, str]]
+        """
+        Returns the list of items in the dictionary.
+        """
         return self._dict.items()
 
     def update(self, *args, **kwargs):
+        # type: (*Iterable[Tuple[Outline, str]], **Tuple[Outline, str]) -> None
+        """
+        Adds the entries provided in `args` and `kwargs` to the dictionary.
+        Each item in `args` is an iterable containing steno entries (perhaps
+        batch-loaded from other dictionaries); each key-value pair in `kwargs`
+        corresponds to one steno entry.
+        """
         assert not self.readonly
         iterable_list = [
             a.items() if isinstance(a, (dict, StenoDictionary))
@@ -133,6 +274,13 @@ class StenoDictionary:
                     self[key] = value
 
     def __setitem__(self, key, value):
+        # type: (Outline, str) -> None
+        """
+        Sets the translation for the steno outline `key` to `value`.
+        Fails if the dictionary is read-only.
+
+        Automatically update the value of :attr:`_longest_key`.
+        """
         assert not self.readonly
         if key in self:
             del self[key]
@@ -142,9 +290,21 @@ class StenoDictionary:
         self.casereverse[value.lower()].append(value)
 
     def get(self, key, fallback=None):
+        # type: (Outline, Optional[str]) -> Optional[str]
+        """
+        Returns the translation for the steno outline `key`, or `fallback` if
+        it is not in the dictionary.
+        """
         return self._dict.get(key, fallback)
 
     def __delitem__(self, key):
+        # type: (Outline) -> None
+        """
+        Deletes the translation for the steno outline `key`.
+        Fails if the dictionary is read-only.
+
+        Automatically update the value of :attr:`_longest_key`.
+        """
         assert not self.readonly
         value = self._dict.pop(key)
         self.reverse[value].remove(key)
@@ -156,16 +316,31 @@ class StenoDictionary:
                 self._longest_key = 0
 
     def __contains__(self, key):
+        # type: (Outline) -> bool
+        """
+        Returns ``True`` if the dictionary contains a translation for the
+        steno outline `key`.
+        """
         return self.get(key) is not None
 
     def reverse_lookup(self, value):
+        # type: (str) -> Set[Outline]
+        """
+        Returns the list of steno outlines that translate to `value`.
+        """
         return set(self.reverse.get(value, ()))
 
     def casereverse_lookup(self, value):
+        # type: (str) -> Set[Outline]
+        """
+        Like :meth:`reverse_lookup`, but performs a case-insensitive lookup.
+        """
         return set(self.casereverse.get(value, ()))
 
     @property
     def _longest_key(self):
+        """
+        """
         return self._longest_key_length
 
     @_longest_key.setter
@@ -177,22 +352,64 @@ class StenoDictionary:
             callback(longest_key)
 
     def add_longest_key_listener(self, callback):
+        """
+        Adds a `callback` that gets called when the :attr:`longest_key` in a
+        dictionary changes, such as when entries are added or removed.
+        `callback` is called with the new longest key as a parameter.
+        """
         self._longest_listener_callbacks.add(callback)
 
     def remove_longest_key_listener(self, callback):
+        """
+        Removes `callback` if it has been registered as a callback for
+        changes to :attr:`longest_key`. `callback` is called with the new
+        longest key as a parameter.
+        """
         self._longest_listener_callbacks.remove(callback)
 
 
 class StenoDictionaryCollection:
+    """
+    A collection of steno dictionaries for the same steno system. Plover would
+    typically look up outlines in these dictionaries in order until it can
+    find a translation, but the interface also allows you to access translations
+    from all dictionaries.
+    """
+    
 
     def __init__(self, dicts=[]):
-        self.dicts = []
-        self.filters = []
-        self.longest_key = 0
-        self.longest_key_callbacks = set()
+        self.dicts = []  # type: List[StenoDictionary]
+        """
+        A list of :class:`StenoDictionary` objects, in decreasing order of
+        priority.
+        """
+
+        self.filters = []  # type: List[FilterFunction]
+        """
+        The list of filters currently active.
+
+        See :class:`FilterFunction` for more details.
+        """
+
+        self.longest_key = 0  # type: int
+        """
+        The number of strokes in the longest key in this dictionary.
+        """
+
+        self.longest_key_callbacks = set()  # type: List[Callable[[int], None]]
+        """
+        The list of functions that get called when the longest key changes.
+        Callbacks are called with the new longest key.
+        """
+        
         self.set_dicts(dicts)
 
     def set_dicts(self, dicts):
+        # type: (List[StenoDictionary]) -> None
+        """
+        Sets the list of dictionaries to `dicts`.
+        """
+        self.dicts = []
         for d in self.dicts:
             d.remove_longest_key_listener(self._longest_key_listener)
         self.dicts = dicts[:]
@@ -201,6 +418,10 @@ class StenoDictionaryCollection:
         self._longest_key_listener()
 
     def _lookup(self, key, dicts=None, filters=()):
+        # type: (Outline, Optional[List[StenoDictionary]], Sequence[FilterFunction]) -> Optional[str]
+        """
+        """
+        
         if dicts is None:
             dicts = self.dicts
         key_len = len(key)
@@ -217,6 +438,7 @@ class StenoDictionaryCollection:
                     return value
 
     def _lookup_from_all(self, key, dicts=None, filters=()):
+        # type: (Outline, Optional[List[StenoDictionary]], Sequence[FilterFunction]) -> List[Tuple[str, StenoDictionary]]
         ''' Key lookup from all dictionaries
 
         Returns list of (value, dictionary) tuples
@@ -245,19 +467,46 @@ class StenoDictionaryCollection:
         return str(self)
 
     def lookup(self, key):
+        # type: (Outline) -> Optional[str]
+        """
+        Returns the first available translation for the steno outline `key`
+        from the highest-priority dictionary that is not filtered out by
+        :attr:`filters`. If none of the dictionaries have an entry for this
+        outline, returns ``None``.
+        """
         return self._lookup(key, filters=self.filters)
 
     def raw_lookup(self, key):
+        # type: (Outline) -> Optional[str]
+        """
+        Like :meth:`lookup`, but does not use :attr:`filters` to filter out results.
+        """
         return self._lookup(key)
 
     def lookup_from_all(self, key):
+        # type: (Outline) -> List[Tuple[str, StenoDictionary]]
+        """
+        Returns the list of translations for the steno outline `key` from
+        *all* dictionaries, except those that are filtered out by :attr:`filters`.
+        Each translation is of the format `(translation, dictionary)`.
+        """
         return self._lookup_from_all(key, filters=self.filters)
 
     def raw_lookup_from_all(self, key):
+        # type: (Outline) -> List[Tuple[str, StenoDictionary]]
+        """
+        Like :meth:`lookup_from_all`, but returns *all* results, including the ones that
+        have been filtered out by :attr:`filters`.
+        """
         return self._lookup_from_all(key)
 
     def reverse_lookup(self, value):
-        keys = set()
+        # type: (str) -> Set[Outline]
+        """
+        Returns the list of steno outlines from all dictionaries that translate
+        to `value`.
+        """
+        keys = set()  # type: Set[Outline]
         for n, d in enumerate(self.dicts):
             if not d.enabled:
                 continue
@@ -267,6 +516,11 @@ class StenoDictionaryCollection:
         return keys
 
     def casereverse_lookup(self, value):
+        # type: (str) -> Set[Outline]
+        """
+        Like :meth:`reverse_lookup`, but performs a case-insensitive lookup.
+        You can also access the longest key across all dictionaries:
+        """
         keys = set()
         for d in self.dicts:
             if not d.enabled:
@@ -275,13 +529,23 @@ class StenoDictionaryCollection:
         return keys
 
     def first_writable(self):
-        '''Return the first writable dictionary.'''
+        # type: () -> StenoDictionary
+        """
+        Returns the first dictionary that is writable, or raises ``KeyError``
+        if none of the dictionaries are writable.
+        """
         for d in self.dicts:
             if not d.readonly:
                 return d
         raise KeyError('no writable dictionary')
 
     def set(self, key, value, path=None):
+        # type: (Outline, str, Optional[str]) -> None
+        """
+        Adds a dictionary entry mapping the steno outline `key` to the
+        translation `value`. If `path` is specified, the entry is added there,
+        otherwise, it is added to the first writable dictionary.
+        """
         if path is None:
             d = self.first_writable()
         else:
@@ -289,6 +553,11 @@ class StenoDictionaryCollection:
         d[key] = value
 
     def save(self, path_list=None):
+        """
+        Saves all of the dictionaries whose paths are in `path_list`.
+        If `path_list` is not specified, all writable dictionaries are saved.
+        Fails if any of the dictionaries are read-only.
+        """
         '''Save the dictionaries in <path_list>.
 
         If <path_list> is None, all writable dictionaries are saved'''
@@ -301,11 +570,19 @@ class StenoDictionaryCollection:
             d.save()
 
     def get(self, path):
+        """
+        Returns the dictionary at the specified path, or ``None`` if it is not
+        part of this collection.
+        """
         for d in self.dicts:
             if d.path == path:
                 return d
 
     def __getitem__(self, path):
+        """
+        Returns the dictionary at the specified path, or raises a ``KeyError``
+        if that dictionary is not part of this collection.
+        """
         d = self.get(path)
         if d is None:
             raise KeyError(repr(path))
@@ -316,15 +593,27 @@ class StenoDictionaryCollection:
             yield d.path
 
     def add_filter(self, f):
+        """
+        Adds `f` to the list of filters.
+        """
         self.filters.append(f)
 
     def remove_filter(self, f):
+        """
+        Removes `f` from the list of filters.
+        """
         self.filters.remove(f)
 
     def add_longest_key_listener(self, callback):
+        """
+        Adds `callback` to the list of longest key callbacks.
+        """
         self.longest_key_callbacks.add(callback)
 
     def remove_longest_key_listener(self, callback):
+        """
+        Removes `callback` from the list of longest key callbacks.
+        """
         self.longest_key_callbacks.remove(callback)
     
     def _longest_key_listener(self, ignored=None):

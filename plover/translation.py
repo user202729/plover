@@ -6,18 +6,19 @@
 This module handles translating streams of strokes in translations. Two classes
 compose this module:
 
-Translation -- A data model class that encapsulates a sequence of Stroke objects
+:class:`Translation`: A data model class that encapsulates a sequence of :class:`~plover.steno.Stroke` objects
 in the context of a particular dictionary. The dictionary in question maps
 stroke sequences to strings, which are typically words or phrases, but could
 also be meta commands.
 
-Translator -- A state machine that takes in a single Stroke object at a time and
-emits one or more Translation objects based on a greedy conversion algorithm.
+:class:`Translator`: A state machine that takes in a single :class:`~plover.steno.Stroke` object at a time and
+emits one or more :class:`Translation` objects based on a greedy conversion algorithm.
 
 """
 
 from collections import namedtuple
 import re
+import typing
 
 from plover.steno import Stroke
 from plover.steno_dictionary import StenoDictionaryCollection
@@ -59,13 +60,33 @@ _LEGACY_MACROS_ALIASES = {
     '{*!}': 'retrospective_delete_space',
     '{*?}': 'retrospective_insert_space',
     '{*+}': 'repeat_last_stroke',
-}
+}  # type: Dict[str, str]
+"""
+Dictionary of legacy macro translations to macro names.
+"""
 
 _MACRO_RX = re.compile(r'=\w+(:|$)')
 
 Macro = namedtuple('Macro', 'name stroke cmdline')
+"""
+Data structure that represents a macro.
+
+A macro's translation might be either in :const:`_LEGACY_MACROS_ALIASES`, or start with a ``=``.
+Examples:
+
+- ``{*}``
+- ``=undo``
+- ``=macro_name:macro_arguments``
+
+Attributes:
+    name (str): The name of the macro.
+    stroke (Stroke): The stroke. In Plover, macro must be written with a single stroke.
+    cmdline (str): The command-line (argument) passed to the macro.
+"""
+
 
 def _mapping_to_macro(mapping, stroke):
+    # type: (str, Stroke) -> typing.Optional[Macro]
     '''Return a macro/stroke if mapping is one, or None otherwise.'''
     macro, cmdline = None, ''
     if mapping is None:
@@ -87,35 +108,29 @@ class Translation:
 
     This class represents the mapping between a sequence of Stroke objects and
     a text string, typically a word or phrase. This class is used as the output
-    from translation and the input to formatting. The class contains the 
-    following attributes:
+    from translation and the input to formatting.
 
-    strokes -- A sequence of Stroke objects from which the translation is
-    derived.
-
-    rtfcre -- A tuple of RTFCRE strings representing the stroke list. This is
-    used as the key in the translation mapping.
-
-    english -- The value of the dictionary mapping given the rtfcre
-    key, or None if no mapping exists.
-
-    replaced -- A list of translations that were replaced by this one. If this
-    translation is undone then it is replaced by these.
-
-    formatting -- Information stored on the translation by the formatter for
-    sticky state (e.g. capitalize next stroke) and to hold undo info.
+    Attributes:
+        strokes (typing.Sequence[Stroke]): A sequence of :class:`~plover.steno.Stroke` objects from which the translation is
+            derived.
+        rtfcre (typing.Tuple[str, ...]): A tuple of RTFCRE strings representing the stroke list. This is
+            used as the key in the translation mapping.
+        english (typing.Optional[str]): The value of the dictionary mapping given the rtfcre
+            key, or None if no mapping exists.
+        replaced (typing.List[Translation]): A list of translations that were replaced by this one. If this
+            translation is undone then it is replaced by these.
+        formatting (typing.List[plover.formatting._Action]): Information stored on the translation by the formatter for
+            sticky state (e.g. capitalize next stroke) and to hold undo info.
 
     """
 
     def __init__(self, outline, translation):
+        # type: (typing.List[Stroke], typing.Optional[str]) -> None
         """Create a translation by looking up strokes in a dictionary.
 
         Arguments:
-
-        outline -- A list of Stroke objects.
-
-        translation -- A translation for the outline or None.
-
+            outline: A list of :class:`~plover.steno.Stroke` objects.
+            translation: A translation for the outline or None.
         """
         self.strokes = outline
         self.rtfcre = tuple(s.rtfcre for s in outline)
@@ -167,29 +182,47 @@ class Translator:
 
     An instance of this class serves as a state machine for processing key
     presses as they come off a stenotype machine. Key presses arrive in batches,
-    each batch representing a single stenotype chord. The Translator class
-    receives each chord as a Stroke and adds the Stroke to an internal,
-    length-limited FIFO, which is then translated into a sequence of Translation
+    each batch representing a single stenotype chord. The :class:`Translator` class
+    receives each chord as a :class:`~plover.steno.Stroke` and adds the :class:`~plover.steno.Stroke` to an internal,
+    length-limited FIFO, which is then translated into a sequence of :class:`Translation`
     objects. The resulting sequence of Translations is compared to those
     previously emitted by the state machine and a sequence of new Translations
     (some corrections and some new) is emitted.
 
-    The internal Stroke FIFO is translated in a greedy fashion; the Translator
+    The internal :class:`~plover.steno.Stroke` FIFO is translated in a greedy fashion; the :class:`Translator`
     finds a translation for the longest sequence of Strokes that starts with the
-    oldest Stroke in the FIFO before moving on to newer Strokes that haven't yet
+    oldest :class:`~plover.steno.Stroke` in the FIFO before moving on to newer Strokes that haven't yet
     been translated. In practical terms, this means that corrections are needed
-    for cases in which a Translation comprises two or more Strokes, at least the
-    first of which is a valid Translation in and of itself.
+    for cases in which a :class:`Translation` comprises two or more Strokes, at least the
+    first of which is a valid :class:`Translation` in and of itself.
 
-    For example, consider the case in which the first Stroke can be translated
-    as 'cat'. In this case, a Translation object representing 'cat' will be
-    emitted as soon as the Stroke is processed by the Translator. If the next
-    Stroke is such that combined with the first they form 'catalogue', then the
-    Translator will first issue a correction for the initial 'cat' Translation
-    and then issue a new Translation for 'catalogue'.
+    For example, consider the case in which the first :class:`~plover.steno.Stroke` can be translated
+    as 'cat'. In this case, a :class:`Translation` object representing 'cat' will be
+    emitted as soon as the :class:`~plover.steno.Stroke` is processed by the :class:`Translator`. If the next
+    :class:`~plover.steno.Stroke` is such that combined with the first they form 'catalogue', then the
+    :class:`Translator` will first issue a correction for the initial 'cat' :class:`Translation`
+    and then issue a new :class:`Translation` for 'catalogue'.
 
-    A Translator takes input via the translate method and provides translation
+    A :class:`Translator` takes input via the translate method and provides translation
     output to every function that has registered via the add_callback method.
+
+    Attributes:
+        _undo_length (int):
+        _dictionary (StenoDictionaryCollection): The dictionary.
+            Use :meth:`set_dictionary` and :meth:`get_dictionary` to access it.
+        _listeners (Set[Callable]): The set of listeners for translation outputs.
+            Use :meth:`add_listener` and :meth:`remove_listener` to modify it.
+        _state (_State): The internal translator state.
+        _to_undo (typing.List[Translation]): The list of pending undo translations.
+        
+            Use :meth:`flush` to send the translation result to the listeners.
+        _to_do (int): The number of pending to-do translations.
+
+            The actual translations are stored in 
+            ``translation`` attribute of :attr:`_state`.
+            
+            Use :meth:`flush` to send the translation result to the listeners.
+
 
     """
     def __init__(self):
@@ -202,11 +235,13 @@ class Translator:
         self._to_do = 0
 
     def translate(self, stroke):
-        """Process a single stroke."""
+        # type: (Stroke) -> None
+        """Process a single stroke, and flush the output."""
         self.translate_stroke(stroke)
         self.flush()
 
     def set_dictionary(self, d):
+        # type: (StenoDictionaryCollection) -> None
         """Set the dictionary."""
         callback = self._dict_callback
         if self._dictionary:
@@ -215,6 +250,7 @@ class Translator:
         d.add_longest_key_listener(callback)
 
     def get_dictionary(self):
+        # type: () -> StenoDictionaryCollection
         return self._dictionary
 
     def add_listener(self, callback):
@@ -222,18 +258,19 @@ class Translator:
 
         Arguments:
 
-        callback -- A function that takes: a list of translations to undo, a
-        list of new translations to render, and a translation that is the
-        context for the new translations.
+            callback: A function that takes: a list of translations to undo, a
+                list of new translations to render, and a translation that is the
+                context for the new translations.
 
         """
         self._listeners.add(callback)
 
     def remove_listener(self, callback):
-        """Remove a listener added by add_listener."""
+        """Remove a listener added by :meth:`add_listener`."""
         self._listeners.remove(callback)
 
     def set_min_undo_length(self, n):
+        # type: (int) -> None
         """Set the minimum number of strokes that can be undone.
 
         The actual number may be larger depending on the translations in the
@@ -244,13 +281,14 @@ class Translator:
         self._resize_translations()
 
     def flush(self, extra_translations=None):
+        # type: (typing.Optional[typing.List[Translation]]) -> None
         '''Process translations scheduled for undoing/doing.
 
         Arguments:
 
-        extra_translations --  Extra translations to add to the list
-                               of translation to do. Note: those will
-                               not be saved to the state history.
+            extra_translations:  Extra translations to add to the list
+                                   of translation to do. Note: those will
+                                   not be saved to the state history.
         '''
         if self._to_do:
             prev = self._state.prev(self._to_do)
@@ -279,26 +317,30 @@ class Translator:
         self._resize_translations()
 
     def get_state(self):
+        # type: () -> _State
         """Get the state of the translator."""
         return self._state
 
     def set_state(self, state):
+        # type: (_State) -> None
         """Set the state of the translator."""
         self._state = state
 
     def clear_state(self):
-        """Reset the sate of the translator."""
+        # type: () -> None
+        """Reset the state of the translator."""
         self._state = _State()
 
     def translate_stroke(self, stroke):
-        """Process a stroke.
+        # type: (Stroke) -> None
+        """Process a stroke without flushing.
 
-        See the class documentation for details of how Stroke objects
-        are converted to Translation objects.
+        See the :class:`Translator` class documentation for details of how :class:`~plover.steno.Stroke` objects
+        are converted to :class:`Translation` objects.
 
         Arguments:
 
-        stroke -- The Stroke object to process.
+            stroke: The :class:`~plover.steno.Stroke` object to process.
 
         """
         mapping = self._lookup_with_prefix(self._state.translations, [stroke])
@@ -314,18 +356,46 @@ class Translator:
         self.translate_translation(t)
 
     def translate_macro(self, macro):
+        # type: (Macro) -> None
+        """
+        Translate a macro without flushing.
+
+        Arguments:
+            macro: the macro.
+        """
         macro_fn = registry.get_plugin('macro', macro.name).obj
         macro_fn(self, macro.stroke, macro.cmdline)
 
     def translate_translation(self, t):
+        # type: (Translation) -> None
+        """
+        Translate a translation without flushing.
+
+        Arguments:
+            t: the translation.
+        """
         self._undo(*t.replaced)
         self._do(t)
 
     def untranslate_translation(self, t):
+        # type: (Translation) -> None
+        """
+        Untranslate a translation without flushing.
+
+        Arguments:
+            t: the translation.
+        """
         self._undo(t)
         self._do(*t.replaced)
 
     def _undo(self, *translations):
+        # type: (*Translation) -> None
+        """
+        Internal method. Untranslating a list of translations without
+        translating the :attr:`~Translation.replaced` part.
+        
+        :meth:`untranslate_translation` should be used instead.
+        """
         for t in reversed(translations):
             assert t == self._state.translations.pop()
             if self._to_do:
@@ -334,10 +404,20 @@ class Translator:
                 self._to_undo.insert(0, t)
 
     def _do(self, *translations):
+        # type: (*Translation) -> None
+        """
+        Internal method. Translating a list of translations without
+        untranslating the :attr:`~Translation.replaced` part.
+
+        :meth:`translate_translation` should be used instead.
+        """
         self._state.translations.extend(translations)
         self._to_do += len(translations)
 
     def _find_translation_helper(self, stroke, suffixes=()):
+        # type: (Stroke, typing.Sequence[str]) -> Translation
+        """
+        """
         # Figure out how much of the translation buffer can be involved in this
         # stroke and build the stroke list for translation.
         num_strokes = 1
@@ -363,6 +443,14 @@ class Translator:
                 return t
 
     def lookup(self, strokes, suffixes=()):
+        # type: (typing.Sequence[Stroke], typing.Sequence[str]) -> typing.Optional[str]
+        """
+        Lookup from the dictionary while handling suffixes.
+
+        Arguments:
+            strokes: a sequence of strokes.
+            suffixes: a sequence of key names that can be a suffix key (for example ``["-G", "-S", "-Z"]``)
+        """
         dict_key = tuple(s.rtfcre for s in strokes)
         result = self._dictionary.lookup(dict_key)
         if result is not None:
@@ -405,9 +493,9 @@ class _State:
 
     Attributes:
 
-    translations -- A list of all previous translations that are still undoable.
+        translations (List[Translation]): A list of all previous translations that are still undoable.
 
-    tail -- The oldest translation still saved but is no longer undoable.
+        tail (Translation): The oldest translation still saved but is no longer undoable.
 
     """
     def __init__(self):
@@ -427,6 +515,7 @@ class _State:
         return None
 
     def restrict_size(self, n):
+        # type: (int) -> None
         """Reduce the history of translations to n."""
         stroke_count = 0
         translation_count = 0

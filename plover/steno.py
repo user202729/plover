@@ -17,11 +17,23 @@ from plover import system
 
 
 STROKE_DELIMITER = '/'
+"""
+The character used to separate successive strokes.
+This is equivalent to ``/``.
+"""
+
 
 _NUMBERS = set('0123456789')
 _IMPLICIT_NUMBER_RX = re.compile('(^|[1-4])([6-9])')
 
 def normalize_stroke(stroke):
+    # type: (str) -> str
+    """
+    Return the :ref:`canonical<canonical>` steno notation for the stroke.
+
+    Arguments:
+        stroke: Steno notation for a stroke.
+    """
     letters = set(stroke)
     if letters & _NUMBERS:
         if system.NUMBER_KEY in letters:

@@ -1,16 +1,47 @@
+"""
+In many steno theories, there may be multiple ways to stroke a certain word.
+By providing the user with suggestions while they are writing, this may help
+them learn briefs or otherwise shorter outlines for the same input, which leads
+to faster, more fluent writing. This module handles providing suggestions.
+"""
+
 import collections
 
 from plover.steno import sort_steno_strokes
 
 
 Suggestion = collections.namedtuple('Suggestion', 'text steno_list')
+"""
+An object representing a possible suggestion.
+
+Attributes:
+    text (str): The translation to get possible suggestion strokes for.
+    steno_list (List[Tuple[str, ...]]):
+        The list of outlines that translate to :attr:`text`, provided in order
+        of the number of strokes.
+"""
 
 
 class Suggestions:
+    """
+    An object that handles finding suggestions using the given dictionary.
+
+    Attributes:
+        dictionary (plover.steno_dictionary.StenoDictionaryCollection):
+            A :class:`~plover.steno_dictionary.StenoDictionaryCollection`
+            containing all of the dictionaries to look up translations from.
+    """
+
     def __init__(self, dictionary):
         self.dictionary = dictionary
 
     def find(self, translation):
+        # type: (str) -> List[Suggestion]
+        """
+        Returns the list of suggestions for the word provided in `translation`,
+        and other words similar to it. Each item in the list is a
+        :class:`Suggestion` containing possible outlines for a single word.
+        """
         suggestions = []
 
         mods = [

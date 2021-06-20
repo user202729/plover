@@ -4,6 +4,7 @@ include CONTRIBUTING.md
 include LICENSE.txt
 include NEWS.md
 include doc/*
+include doc/api/*
 include linux/*
 include linux/appimage/*
 include news.d/api/*

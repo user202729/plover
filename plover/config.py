@@ -1,12 +1,19 @@
 # Copyright (c) 2010-2011 Joshua Harlan Lifton.
 # See LICENSE.txt for details.
 
-"""Configuration management."""
+"""
+This modules handles reading and writing Plover's configuration files, as well
+as updating the configuration on-the-fly while Plover is running.
+"""
 
 from collections import ChainMap, namedtuple, OrderedDict
 import configparser
 import json
 import re
+import typing
+
+if typing.TYPE_CHECKING:
+    from typing import Optional, Any, Callable, Dict
 
 from plover.exception import InvalidConfigurationError
 from plover.machine.keymap import Keymap
@@ -34,15 +41,30 @@ SYSTEM_KEYMAP_OPTION = 'keymap[%s]'
 
 
 class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
+    """
+    Represents the configuration for one dictionary.
+    
+    Attributes:
+        path (str): The fully qualified path to the dictionary file.
+        enabled (bool): Whether the dictionary is enabled.
+    """
+    
 
     def __new__(cls, path, enabled=True):
         return super().__new__(cls, expand_path(path), enabled)
 
     @property
     def short_path(self):
+        """
+        The shortened path to the dictionary file. This is automatically
+        calculated from :attr:`path`.
+        """
         return shorten_path(self.path)
 
     def to_dict(self):
+        """
+        Returns the ``dict`` representation of the dictionary configuration.
+        """
         # Note: do not use _asdict because of
         # https://bugs.python.org/issue24931
         return {
@@ -51,22 +73,71 @@ class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
         }
 
     def replace(self, **kwargs):
+        """
+        Replaces the values of :attr:`path` and :attr:`enabled` with those in `kwargs`.
+        """
         return self._replace(**kwargs)
 
     @staticmethod
     def from_dict(d):
+        """
+        Returns a :class:`DictionaryConfig` constructed from its ``dict``
+        representation.
+        """
         return DictionaryConfig(**d)
 
+
+ConfigFullKey = typing.Tuple[str, ...]
+"""
+A full_key tuple, where the first item is the option name,
+and the rest are option-specific keys
+(such as ``('system_keymap', 'English Stenotype', 'Gemini PR')``).
+"""
+
+ConfigKey = typing.Union[str, ConfigFullKey]
+"""
+A configuration key. It's either a string (such as ``translation_frame_opacity``), or
+:class:`ConfigFullKey`.
+
+See :ref:`Configuration Options`.
+"""
+
+ConfigValue = typing.Any
+"""
+A configuration value. Can be various different types.
+"""
 
 ConfigOption = namedtuple('ConfigOption', '''
                           name default
                           getter setter
                           validate full_key
                           ''')
+"""
+Attributes:
+    name (str): Configuration option name. See :class:`ConfigKey` for more details.
+    default (Callable[[Config, ConfigKey], ConfigValue]):
+    getter (Callable[[Config, ConfigKey], ConfigValue]):
+    setter (Callable[[Config, ConfigKey, ConfigValue], None]):
+    validate (Callable[[Config, ConfigKey, ConfigValue], ConfigValue]):
+    full_key (Optional[Callable[[Config, ConfigKey], ConfigFullKey]]):
+"""
+
 
 class InvalidConfigOption(ValueError):
+    """
+    An exception raised when a configuration option has been set to an invalid
+    value, such as one of the wrong type. ``fixed_value`` is the value that
+    Plover is falling back on if ``raw_value`` can't be parsed correctly.
+    """
 
     def __init__(self, raw_value, fixed_value, message=None):
+        # type: (ConfigValue, ConfigValue, str) -> None
+        """
+        Arguments:
+            raw_value:
+            fixed_value:
+            message:
+        """
         super().__init__(raw_value)
         self.raw_value = raw_value
         self.fixed_value = fixed_value
@@ -77,6 +148,9 @@ class InvalidConfigOption(ValueError):
 
 
 def raw_option(name, default, section, option, validate):
+    # type: (str, ConfigValue, str, str, Callable) -> ConfigOption
+    """
+    """
     option = option or name
     def getter(config, key):
         return config._config[section][option]
@@ -100,6 +174,9 @@ def json_option(name, default, section, option, validate):
     return ConfigOption(name, default, getter, setter, validate, None)
 
 def int_option(name, default, minimum, maximum, section, option=None):
+    # type: (str, int, int, int, str, str) -> ConfigOption
+    """
+    """
     option = option or name
     def getter(config, key):
         return config._config[section].getint(option)
@@ -145,6 +222,10 @@ def plugin_option(name, plugin_type, default, section, option=None):
     return raw_option(name, default, section, option, validate)
 
 def opacity_option(name, section, option=None):
+    # type: (str, str, str) -> ConfigOption
+    """
+    """
+    
     return int_option(name, 100, 0, 100, section, option)
 
 def path_option(name, default, section, option=None):
@@ -291,15 +372,41 @@ def dictionaries_option():
 
 
 class Config:
+    """
+    An object containing the entire Plover configuration. The config object
+    maintains a cache for any changes that are made while Plover is running.
+    """
 
     def __init__(self, path=None):
-        self._config = None
-        self._cache = {}
+        # type: (Optional[str]) -> None
+        """
+        """
+
+        self._config = None  # type: configparser.RawConfigParser
+        """
+        Internal configuration object, used for loading and saving ``.cfg`` files.
+        """
+
+        self._cache = {}  # type: Dict[str, ConfigValue]
+        """
+        Mapping from configuration name to configuration value.
+        Value cached after getting from ``_config`` object.
+        Used by :meth:`__getitem__`.
+        """
+
         # A convenient place for other code to store a file name.
-        self.path = path
+        self.path = path  # type: Optional[str]
+        """
+        """
+
         self.clear()
 
     def load(self):
+        """
+        Reads and parses the configuration from the configuration file.
+        Raises an :exc:`InvalidConfigurationError<plover.exception.InvalidConfigurationError>`
+        if the configuration could not be parsed correctly.
+        """
         self.clear()
         with open(self.path, encoding='utf-8') as fp:
             try:
@@ -308,15 +415,28 @@ class Config:
                 raise InvalidConfigurationError(str(e))
 
     def clear(self):
+        """
+        Clears the configuration and returns to the base state.
+        """
         self._config = configparser.RawConfigParser()
         self._cache.clear()
 
     def save(self):
+        """
+        Writes the current state of the configuration to the configuration file.
+        """
         with resource_update(self.path) as temp_path:
             with open(temp_path, mode='w', encoding='utf-8') as fp:
                 self._config.write(fp)
 
     def _set(self, section, option, value):
+        # type: (str, str, ConfigValue) -> None
+        """
+        Set option in the internal config object.
+
+        The parameters are the same as in :meth:`configparser.RawConfigParser.set`.
+        """
+
         if not self._config.has_section(section):
             self._config.add_section(section)
         self._config.set(section, option, value)
@@ -350,9 +470,21 @@ class Config:
         plugin_option('system_name', 'system', DEFAULT_SYSTEM_NAME, 'System', 'name'),
         system_keymap_option(),
         dictionaries_option(),
-    ])
+    ])  # type: OrderedDict[str, ConfigOption]
+    """
+    Mapping of option name to :class:`ConfigOption` objects.
+
+    :meta hide-value:
+    """
 
     def _lookup(self, key):
+        # type: (ConfigKey) -> typing.Tuple[ConfigFullKey, ConfigOption]
+        """
+        Get the :class:`ConfigOption` object from the option name.
+
+        Arguments:
+            key: the option name.
+        """
         name = key[0] if isinstance(key, tuple) else key
         opt = self._OPTIONS[name]
         if opt.full_key is not None:
@@ -360,6 +492,14 @@ class Config:
         return key, opt
 
     def __getitem__(self, key):
+        # type: (ConfigKey) -> ConfigValue
+        """
+        Returns the value of the specified ``key`` in the cache, or in the
+        full configuration if not available.
+
+        Arguments:
+            key:
+        """
         key, opt = self._lookup(key)
         if key in self._cache:
             return self._cache[key]
@@ -374,15 +514,30 @@ class Config:
         return value
 
     def __setitem__(self, key, value):
+        # type: (ConfigKey, ConfigValue) -> None
+        """
+        Sets the property ``key`` in the configuration to the specified value.
+
+        Arguments:
+            key: The option name.
+        """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)
         opt.setter(self, key, value)
         self._cache[key] = value
 
     def as_dict(self):
+        # type: () -> typing.Dict[str, ConfigValue]
+        """
+        Returns the ``dict`` representation of the current state of the
+        configuration.
+        """
         return {opt.name: self[opt.name] for opt in self._OPTIONS.values()}
 
     def update(self, **kwargs):
+        """
+        Update the cache to reflect the contents of the full configuration.
+        """
         new_settings = []
         new_config = ChainMap({}, self)
         for opt in self._OPTIONS.values():

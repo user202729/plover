@@ -61,10 +61,9 @@ class StenotypeBase:
     def add_stroke_callback(self, callback):
         """Subscribe to output from the stenotype machine.
 
-        Argument:
-
-        callback -- The function to call whenever there is output from
-        the stenotype machine and output is being captured.
+        Arguments:
+            callback: The function to call whenever there is output from
+                the stenotype machine and output is being captured.
 
         """
         self.stroke_subscribers.append(callback)
@@ -72,9 +71,8 @@ class StenotypeBase:
     def remove_stroke_callback(self, callback):
         """Unsubscribe from output from the stenotype machine.
 
-        Argument:
-
-        callback -- A function that was previously subscribed.
+        Arguments:
+            callback: A function that was previously subscribed.
 
         """
         self.stroke_subscribers.remove(callback)
@@ -104,9 +102,8 @@ class StenotypeBase:
         This is only of use for the keyboard machine,
         and the engine is resumed with a command stroke.
 
-        Argument:
-
-        send_backspaces -- The function to use to send backspaces.
+        Arguments:
+            send_backspaces: The function to use to send backspaces.
         '''
         pass
 
@@ -176,8 +173,8 @@ class SerialStenotypeBase(ThreadedStenotypeBase):
     """For use with stenotype machines that connect via serial port.
 
     This class implements the three methods necessary for a standard
-    stenotype interface: start_capture, stop_capture, and
-    add_callback.
+    stenotype interface: :meth:`start_capture`, :meth:`stop_capture`, and
+    :meth:`add_callback`.
 
     """
 
@@ -195,7 +192,7 @@ class SerialStenotypeBase(ThreadedStenotypeBase):
         """Monitor the stenotype over a serial port.
 
         Keyword arguments are the same as the keyword arguments for a
-        serial.Serial object.
+        :class:`serial.Serial` object.
 
         """
         ThreadedStenotypeBase.__init__(self)
@@ -250,11 +247,12 @@ class SerialStenotypeBase(ThreadedStenotypeBase):
         }
 
     def _iter_packets(self, packet_size):
-        """Yield packets of <packets_size> bytes until the machine is stopped.
+        """Yield packets of <packet_size> bytes until the machine is stopped.
 
         N.B.: to workaround the fact that the Toshiba Bluetooth stack
         on Windows does not correctly handle the read timeout setting
         (returning immediately if some data is already available):
+        
         - the effective timeout is re-configured to <timeout/packet_size>
         - multiple reads are  done (until a packet is complete)
         - an incomplete packet will only be discarded if one of

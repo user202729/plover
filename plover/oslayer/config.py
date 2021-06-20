@@ -51,13 +51,23 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, CONFIG_BASENAME)
 # Setup plugins directory.
 PLUGINS_PLATFORM = PLATFORM
 
-plover_dist = pkg_resources.working_set.by_key['plover']
+try:
+    plover_dist = pkg_resources.working_set.by_key['plover']
+except KeyError:
+    assert __sphinx_build__
+    plover_dist = None
 
-ASSETS_DIR = plover_dist.get_resource_filename(__name__, 'plover/assets')
+if plover_dist:
+    ASSETS_DIR = plover_dist.get_resource_filename(__name__, 'plover/assets')
 
-# Is support for the QT GUI available?
-HAS_GUI_QT = True
-for req in plover_dist.requires(('gui_qt',)):
-    if pkg_resources.working_set.find(req) is None:
-        HAS_GUI_QT = False
-        break
+    # Is support for the QT GUI available?
+    HAS_GUI_QT = True
+    for req in plover_dist.requires(('gui_qt',)):
+        if pkg_resources.working_set.find(req) is None:
+            HAS_GUI_QT = False
+            break
+
+
+else:
+    HAS_GUI_QT = False
+    ASSETS_DIR = None

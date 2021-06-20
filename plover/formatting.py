@@ -1,10 +1,8 @@
 # Copyright (c) 2010-2011 Joshua Harlan Lifton.
 # See LICENSE.txt for details.
 
-"""This module converts translations to printable text.
-
-This module defines and implements plover's custom dictionary language.
-
+"""This module handles parsing Plover's dictionary entry mini-language and
+converting it into *actions* that the translation engine can execute.
 """
 
 from enum import Enum
@@ -12,6 +10,7 @@ from os.path import commonprefix
 from collections import namedtuple
 import re
 import string
+import typing
 
 from plover.registry import registry
 
@@ -24,6 +23,15 @@ Case = Enum('case', ((c, c.lower()) for c in '''
                      UPPER
                      UPPER_FIRST_WORD
                      '''.split()))
+"""
+Attributes:
+    CAP_FIRST_WORD (int):
+    LOWER (int):
+    LOWER_FIRST_CHAR (int):
+    TITLE (int):
+    UPPER (int):
+    UPPER_FIRST_WORD (int):
+"""
 
 SPACE = ' '
 
@@ -134,6 +142,13 @@ ATOM_RE = re.compile(r"""(?:%s%s|%s%s|[^%s%s])+ # One or more of anything
                              META_END, META_START, META_END,
                              META_END),
                      re.VERBOSE)
+"""
+A regular expression for detecting individual formatting items in a
+dictionary entry. Each *atom* is either raw text, possibly containing some
+escaped braces (``\{`` and ``\}``), or a "meta" formatting or translation
+command enclosed in braces (e.g. ``{*<}``).
+"""
+
 
 # A more human-readable version of the above RE is:
 #
@@ -148,30 +163,53 @@ ATOM_RE = re.compile(r"""(?:%s%s|%s%s|[^%s%s])+ # One or more of anything
 
 
 WORD_RX = re.compile(r'(?:\d+(?:[.,]\d+)+|[\'\w]+[-\w\']*|[^\w\s]+)\s*', re.UNICODE)
+"""
+A regular expression for detecting words in translation output.
+
+See :class:`RetroFormatter` for the definition of a word.
+"""
 
 
 class RetroFormatter:
     """Helper for iterating over the result of previous translations.
 
-    Support iterating over previous actions, text, fragments of text, or words:
+    Support iterating over previous actions, text, fragments of text, or words::
 
-    text     : "Something something, blah! Blah: 45.8... (blah: foo42)   "
-    fragments: "__________-----------______------________-------_________"
-    words    : "__________---------__----__----__----____-____--_____----"
+        text     : "Something something, blah! Blah: 45.8... (blah: foo42)   "
+        fragments: "__________-----------______------________-------_________"
+        words    : "__________---------__----__----__----____-____--_____----"
+
+    Each *word*
+    consists of either an uninterrupted series of letters or numbers, or
+    a punctuation character that may be surrounded by whitespace characters on
+    either side.
+
+    Each *fragment* is a series of non-whitespace characters followed by
+    zero or more trailing whitespace characters.
+
+    Attributes:
+        previous_translations ():
 
     """
 
     FRAGMENT_RX = re.compile(r'\s*[^\s]+\s*|^\s*$')
+    """
+    A regular expression for detecting fragments in a string of text.
+
+    See :class:`RetroFormatter` for the definition of a fragment.
+    """
 
     def __init__(self, previous_translations):
         self.previous_translations = previous_translations
 
     def iter_last_actions(self):
+        # type: () -> typing.Iterable[_Action]
         """Iterate over past actions (last first)."""
         for translation in reversed(self.previous_translations):
             yield from reversed(translation.formatting)
 
     def iter_last_fragments(self):
+        # type: () -> typing.Iterable[str]
         """Iterate over last text fragments (last first).
 
         A text fragment is a series of non-whitespace characters
@@ -231,7 +269,17 @@ class RetroFormatter:
                 yield word.rstrip() if strip else word
 
     def last_words(self, count=1, strip=False, rx=WORD_RX):
-        """Return the last <count> words."""
+        # type: (int, bool, re.Pattern) -> typing.List[str]
+        """Return the last <count> words.
+
+        Note that if <count> is not a strictly positive integer,
+        the function will return all last words.
+
+        Arguments:
+            count:
+            strip:
+            rx: The regular expression to match ???
+        """
         word_list = []
         for w in self.iter_last_words(strip=strip, rx=rx):
             word_list.insert(0, w)
@@ -240,6 +288,7 @@ class RetroFormatter:
         return word_list
 
     def last_text(self, size):
+        # type: (int) -> str
         """Return the last <size> characters."""
         text = ''
         if not size:
@@ -257,6 +306,11 @@ class _Context(RetroFormatter):
     Keep tracks of previous actions as well as newly translated actions,
     offer helpers for creating new actions and convenient access to past
     actions/text/words.
+
+    Attributes:
+        previous_translations (typing.List[Translation]):
+        last_action (_Action):
+        translated_actions (typing.List[_Action]):
     """
 
     def __init__(self, previous_translations, last_action):
@@ -266,20 +320,24 @@ class _Context(RetroFormatter):
         self.translated_actions = []
 
     def new_action(self):
+        # type: () -> _Action
         """Create a new action, only copying global state."""
         return self.last_action.new_state()
 
     def copy_last_action(self):
+        # type: () -> _Action
         """Create a new action, cloning the last action state."""
         return self.last_action.copy_state()
 
     def translated(self, action):
+        # type: (_Action) -> None
         """Mark an action as translated."""
         assert action is not None
         self.translated_actions.append(action)
         self.last_action = action
 
     def iter_last_actions(self):
+        # type: () -> typing.Iterable[_Action]
         """Custom iterator with support for newly translated actions."""
         yield from reversed(self.translated_actions)
         yield from super().iter_last_actions()
@@ -289,79 +347,131 @@ class Formatter:
     """Convert translations into output.
 
     The main entry point for this class is format, which takes in translations
-    to format. Output is sent via an output class passed in through set_output.
+    to format. Output is sent via an output class passed in through :meth:`set_output`.
     Other than setting the output, the formatter class is stateless.
 
     The output class can define the following functions, which will be called
     if available:
 
-    send_backspaces -- Takes a number and deletes back that many characters.
+    - send_backspaces: Takes a number and deletes back that many characters.
 
-    send_string -- Takes a string and prints it verbatim.
+    - send_string: Takes a string and prints it verbatim.
 
-    send_key_combination -- Takes a string the dictionary format for specifying
-    key combinations and issues them.
+    - send_key_combination: Takes a string the dictionary format for specifying
+      key combinations and issues them.
 
-    send_engine_command -- Takes a string which names the special command to
-    execute.
-
+    - send_engine_command: Takes a string which names the special command to
+      execute.
     """
 
     output_type = namedtuple(
         'output', ['send_backspaces', 'send_string', 'send_key_combination',
                    'send_engine_command'])
+    """
+    Helper type to store the functions to call on the output class internally.
+
+    See the documentation of :class:`Formatter`.
+
+    Attributes:
+        send_backspaces ():
+        send_string ():
+        send_key_combination ():
+        send_engine_command ():
+    """
 
     def __init__(self):
         self.set_output(None)
-        self.spaces_after = False
-        self.last_output_spaces_after = False
-        self.start_capitalized = False
-        self.start_attached = False
-        self._listeners = set()
+        self.spaces_after = False  # type: bool
+        """
+        The ``spaces_after`` property of the next output (next :meth:`format` call).
+
+        This property can be modified directly or with :meth:`set_space_placement`.
+        """
+        self.last_output_spaces_after = False  # type: bool
+        """
+        The ``spaces_after`` property of the last output (last :meth:`format` call).
+
+        See also: :meth:`set_space_placement`.
+        """
+        self.start_capitalized = False  # type: bool
+        """
+        See ``start_capitalized`` in :ref:`configuration-options`.
+
+        This property can be modified directly (the formatter object is stateless).
+        """
+        self.start_attached = False  # type: bool
+        """
+        See ``start_attached`` in :ref:`configuration-options`.
+
+        This property can be modified directly (the formatter object is stateless).
+        """
+        self._listeners = set()  # type: typing.Set[Callable]
+        """
+        Internal set of listener for translation outputs.
+        See :meth:`add_listener` and :meth:`remove_listener`.
+        """
+        
 
     def add_listener(self, callback):
         """Add a listener for translation outputs.
 
         Arguments:
-
-        callback -- A function that takes: a list of translations to undo, a
-        list of new translations to render, and a translation that is the
-        context for the new translations.
+            callback: A function that takes: a list of translations to undo, a
+                list of new translations to render, and a translation that is the
+                context for the new translations.
 
         """
         self._listeners.add(callback)
 
     def remove_listener(self, callback):
-        """Remove a listener added by add_listener."""
+        """Remove a listener added by :meth:`add_listener`."""
         self._listeners.remove(callback)
 
     def set_output(self, output):
-        """Set the output class."""
+        # type: (typing.Any) -> None
+        """Set the output class.
+
+        Parameters:
+            output: the output class.
+
+                The type should be compatible with :data:`Formatting.output_type`.
+
+                There can be missing attributes, which is automatically replaced with no-operation.
+        """
         noop = lambda x: None
         output_type = self.output_type
         fields = output_type._fields
         self._output = output_type(*[getattr(output, f, noop) for f in fields])
 
     def set_space_placement(self, s):
-        # Set whether spaces will be inserted
-        # before the output or after the output
+        # type: (str) -> None
+        """
+        Set whether spaces will be inserted
+        before the output or after the output.
+
+        Parameters:
+            s: either ``Before Output`` or ``After Output``.
+                See ``space_placement`` in :ref:`configuration-options`.
+
+        """
         self.spaces_after = bool(s == 'After Output')
 
     def format(self, undo, do, prev):
+        # type: (typing.List[Translation], Translation, typing.List[Translation]) -> None
         """Format the given translations.
 
         Arguments:
 
-        undo -- A sequence of translations that should be undone. The
-        formatting parameter of the translations will be used to undo the
-        actions that were taken, if possible.
+            undo: A sequence of translations that should be undone. The
+                formatting parameter of the translations will be used to undo the
+                actions that were taken, if possible.
 
-        do -- The new actions to format. The formatting attribute will be
-        filled in with the result.
+            do: The new actions to format. The formatting attribute will be
+                filled in with the result.
 
-        prev -- The last translation before the new actions in do. This
-        translation's formatting attribute provides the context for the new
-        rendered translations. If there is no context then this may be None.
+            prev: The last translation before the new actions in do. This
+                translation's formatting attribute provides the context for the new
+                rendered translations. If there is no context then this may be None.
 
         """
         assert undo or do
@@ -455,17 +565,29 @@ class Formatter:
 
 
 class TextFormatter:
-    """Format a series of action into text."""
+    """Format a series of action into text.
+    """
 
     def __init__(self, spaces_after):
-        self.spaces_after = spaces_after
-        # Initial replaced text.
-        self.replaced_text = ''
-        # New appended text.
-        self.appended_text = ''
-        self.trailing_space = ''
+        # type: (bool) -> None
+        self.spaces_after = spaces_after  # type: bool
+        """
+        """
+        self.replaced_text = ''  # type: str
+        """
+        Initial replaced text.
+        """
+        self.appended_text = ''  # type: str
+        """
+        New appended text.
+        """
+        self.trailing_space = ''  # type: str
+        """
+        """
+
 
     def _render_action(self, action):
+        # type: (_Action) -> None
         if self.spaces_after and self.trailing_space:
             assert self.appended_text.endswith(self.trailing_space)
             self.appended_text = self.appended_text[:-len(self.trailing_space)]
@@ -496,6 +618,7 @@ class TextFormatter:
             self.trailing_space = ''
 
     def render(self, action_list, last_action):
+        # type: (typing.List[_Action], _Action) -> Iterable[_Action]
         """Render a series of action.
 
         Note: the function is a generator that yields non-text
@@ -511,6 +634,7 @@ class TextFormatter:
                 self._render_action(action)
 
     def reset(self, trailing_space):
+        # type: (str) -> None
         """Reset current state (rendered text)."""
         self.replaced_text = ''
         self.appended_text = trailing_space
@@ -521,12 +645,21 @@ class OutputHelper:
 
     This class figures out the current state, compares it to the new output and
     optimizes away extra backspaces and typing.
-
     """
     def __init__(self, output, before_spaces_after, after_spaces_after):
+        # type: (Formatter.output_type, bool, bool) -> None
         self.output = output
-        self.before = TextFormatter(before_spaces_after)
-        self.after = TextFormatter(after_spaces_after)
+        """
+        The object that contains the functions to call with the output.
+
+        Type: (compatible with) :data:`Formatter.output_type`
+        """
+        self.before = TextFormatter(before_spaces_after)  # type: TextFormatter
+        """
+        """
+        self.after = TextFormatter(after_spaces_after)  # type: TextFormatter
+        """
+        """
 
     def flush(self):
         # FIXME:
@@ -578,6 +711,17 @@ class _Action:
     instructions are used to render the current action and the state is used as
     context to render future translations.
 
+    **Documentation TODO** (how to remove the "parameters" and "return type" part below?)
+
+    There are also other attributes that has the same name as the parameter names of
+    :meth:`__init__`.
+
+    **Note**: for the documentation of the parameters, see :meth:`__init__`.
+
+    Attributes:
+        DEFAULT (_Action): An empty action object.
+
+
     """
 
     def __init__(self,
@@ -590,49 +734,50 @@ class _Action:
                  # Next.
                  next_attach=False, next_case=None
                 ):
+        # type: (bool, str, bool, typing.Optional[str], bool, str, bool, Case, typing.Optional[str], str, typing.Optional[bool], typing.Optional[str], typing.Optional[str], bool, bool) -> None
         """Initialize a new action.
 
         Arguments:
 
-        prev_attach -- True if there should be no space between this and the
-                       previous action.
+            prev_attach: ``True`` if there should be no space between this and the
+                           previous action.
 
-        prev_replace -- Text that should be deleted for this action.
+            prev_replace: Text that should be deleted for this action.
 
-        glue -- True if there be no space between this and the next action if
-                the next action also has glue set to True.
+            glue: ``True`` if there be no space between this and the next action if
+                    the next action also has glue set to ``True``.
 
-        word -- The current root word (sans prefix, and un-cased). This is
-                context for future actions whose behavior depends on it such as
-                suffixes.
+            word: The current root word (sans prefix, and un-cased). This is
+                    context for future actions whose behavior depends on it such as
+                    suffixes.
 
-        upper_carry -- True if we are uppercasing the current word.
+            orthography: ``True`` if orthography rules should be applies when adding
+                          a suffix to this action.
 
-        word_is_finished -- True if word is finished.
+            word_is_finished: True if word is finished.
 
-        orthography -- True if orthography rules should be applies when adding
-                      a suffix to this action.
+            space_char: this character will replace spaces after all other
+                formatting has been applied
 
-        space_char -- this character will replace spaces after all other
-        formatting has been applied
+            upper_carry: ``True`` if we are uppercasing the current word.
 
-        case -- an integer to determine which case to output after formatting
+            case: an integer to determine which case to output after formatting
 
-        text -- The text that should be rendered for this action.
+            text: The text that should be rendered for this action.
 
-        trailing_space -- This the space that would be added when rendering
-                          up to this action with space placement set to
-                          'after output'.
+            trailing_space: This the space that would be added when rendering
+                              up to this action with space placement set to
+                              'after output'.
 
-        combo -- The key combo, in plover's key combo language, that should be
-                 executed for this action.
+            combo: The key combo, in plover's key combo language, that should be
+                     executed for this action.
 
-        command -- The command that should be executed for this action.
+            command: The command that should be executed for this action.
 
-        next_attach -- True if there should be no space between this and the next
-                       action.
+            next_attach: ``True`` if there should be no space between this and the next
+                           action.
 
-        next_case -- Case to apply to next action: capitalize/lower/upper...
+            next_case: Case to apply to next action: capitalize/lower/upper...
 
         """
         # State variables
@@ -658,6 +803,7 @@ class _Action:
         self.command = command
 
     def copy_state(self):
+        # type: () -> _Action
         """Clone this action but only clone the state variables."""
         return _Action(
             # Previous.
@@ -672,6 +818,10 @@ class _Action:
         )
 
     def new_state(self):
+        # type: () -> _Action
+        """
+        """
+        
         return _Action(
             # Previous.
             prev_attach=self.next_attach,
@@ -725,13 +875,14 @@ class _LookAheadAction(_Action):
 
 
 def _translation_to_actions(translation, ctx):
+    # type: (str, _Context) -> typing.List[_Action]
     """Create actions for a translation.
 
     Arguments:
 
-    translation -- A string with the translation to render.
+        translation: A string with the translation to render.
 
-    last_action -- The action in whose context this translation is formatted.
+        ctx: The context in which the new actions are created.
 
     Returns: A list of actions.
 
@@ -759,13 +910,14 @@ def _translation_to_actions(translation, ctx):
 
 
 def _raw_to_actions(stroke, ctx):
+    # type: (str, _Context) -> typing.List[_Action]
     """Turn a raw stroke into actions.
 
     Arguments:
 
-    stroke -- A string representation of the stroke.
+        stroke: A string representation of the stroke.
 
-    last_action -- The context in which the new actions are created
+        ctx: The context in which the new actions are created.
 
     Returns: A list of actions.
 
@@ -800,11 +952,11 @@ def _atom_to_action(atom, ctx):
 
     Arguments:
 
-    atom -- A string holding an atom. An atom is an irreducible string that is
-    either entirely a single meta command or entirely text containing no meta
-    commands.
+        atom: A string holding an atom. An atom is an irreducible string that is
+            either entirely a single meta command or entirely text containing no meta
+            commands.
 
-    last_action -- The context in which the new action takes place.
+        ctx: The context in which the new actions are created.
 
     Returns: An action for the atom.
 

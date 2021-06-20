@@ -16,6 +16,7 @@ http://www.legalxml.org/workgroups/substantive/transcripts/cre-spec.htm
 import codecs
 import inspect
 import re
+import typing
 
 from plover.steno import normalize_steno
 from plover.steno_dictionary import StenoDictionary
@@ -280,6 +281,7 @@ class TranslationConverter:
 STYLESHEET_RE = re.compile(r'(?s){\\s([0-9]+).*?((?:\b\w+\b\s*)+);}')
 
 def load_stylesheet(s):
+    # type: (str) -> typing.Dict[int, str]
     """Returns a dictionary mapping a number to a style name."""
     return {int(k): v for k, v in STYLESHEET_RE.findall(s)}
 
@@ -287,6 +289,10 @@ HEADER = ("{\\rtf1\\ansi{\\*\\cxrev100}\\cxdict{\\*\\cxsystem Plover}" +
           "{\\stylesheet{\\s0 Normal;}}\r\n")
 
 def format_translation(t):
+    # type: (str) -> str
+    """
+    Convert a translation from Plover internal format into RTF/CRE format.
+    """
     t = ' '.join([x.strip() for x in ATOM_RE.findall(t) if x.strip()])
     
     t = re.sub(r'{\.}', r'{\\cxp. }', t)
@@ -311,6 +317,9 @@ def format_translation(t):
 
 
 class RtfDictionary(StenoDictionary):
+    """
+    Subclass of :class:`~plover.steno_dictionary.StenoDictionary` for an RTF/CRE dictionary.
+    """
 
     def _load(self, filename):
         with open(filename, 'rb') as fp:

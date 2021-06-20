@@ -17,6 +17,9 @@ from plover.steno import normalize_steno
 
 
 class JsonDictionary(StenoDictionary):
+    """
+    Subclass of :class:`~plover.steno_dictionary.StenoDictionary` for a json dictionary.
+    """
 
     def _load(self, filename):
         with open(filename, 'rb') as fp:
