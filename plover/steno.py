@@ -15,6 +15,16 @@ import re
 
 from plover import system
 
+import typing
+try:
+    __sphinx_build__
+except NameError:
+    __sphinx_build__ = False
+
+if typing.TYPE_CHECKING or __sphinx_build__:
+    from typing import List
+    from plover.steno_dictionary import Outline
+
 
 STROKE_DELIMITER = '/'
 """
@@ -51,17 +61,43 @@ def normalize_stroke(stroke):
     return stroke
 
 def normalize_steno(strokes_string):
-    """Convert steno strings to one common form."""
+    # type: (str) -> Outline
+    """
+    Return the :ref:`canonical<canonical>` steno notation for the outline.
+    This simply splits the string into individual strokes and calls
+    :func:`normalize_stroke` on them.
+
+    Parameters:
+        strokes_string: Steno notation for an outline.
+
+    Return:
+        A tuple consisting of the canonical steno notation for each stroke.
+    """
     if not strokes_string:
         return ()
     return tuple(normalize_stroke(stroke) for stroke
                  in strokes_string.split(STROKE_DELIMITER))
 
 def sort_steno_keys(steno_keys):
+    # type: (List[str]) -> List[str]
+    """
+    Return a new list of steno keys, sorted based on the current system's
+    steno order.
+
+    Parameters:
+        steno_keys: A list of steno keys, not necessarily in steno order.
+    """
     return sorted(steno_keys, key=lambda x: system.KEY_ORDER.get(x, -1))
 
 def sort_steno_strokes(strokes_list):
-    '''Return suggestions, sorted by fewest strokes, then fewest keys.'''
+    # type: (List[Outline]) -> List[Outline]
+    '''
+    Return a new list of outlines sorted by the number of strokes first, and
+    then the length of each stroke (number of keys).
+    
+    Parameters:
+        strokes_list: A list of tuples representing outlines in steno notation.
+    '''
     return sorted(strokes_list, key=lambda x: (len(x), sum(map(len, x))))
 
 
@@ -78,12 +114,13 @@ class Stroke:
 
     """
 
-    def __init__(self, steno_keys) :
+    def __init__(self, steno_keys):
+        # type: (List[str]) -> None
         """Create a steno stroke by formatting steno keys.
 
         Arguments:
 
-        steno_keys -- A sequence of pressed keys.
+            steno_keys: A sequence of pressed keys.
 
         """
         # Remove duplicate keys and save local versions of the input 
@@ -91,10 +128,27 @@ class Stroke:
         steno_keys_set = set(steno_keys)
         if not steno_keys_set:
             self.steno_keys = []
-            self.rtfcre = ''
+            self.rtfcre = ''  # type: str
+            """
+            The normalized (or `canonical`) steno notation for this stroke.
+
+            .. _canonical:
+
+            The canonical steno notation for a stroke has the following properties:
+
+              * All of the keys are in steno order
+
+              * There is a hyphen *only if* at least one key on the right bank is
+                pressed *and* this key is not an implicit separator
+
+              * Number keys are written as numbers rather than using the number
+                key (for example, ``-8`` rather than ``#-L``)
+            """
             return
-        # Order the steno keys so comparisons can be made.
-        steno_keys = list(sort_steno_keys(steno_keys_set))
+        steno_keys = list(sort_steno_keys(steno_keys_set))  # type: List[str]
+        """
+        A *sorted* list of the steno keys that compose this stroke.
+        """
 
         # Convert strokes involving the number bar to numbers.
         if system.NUMBER_KEY in steno_keys:
@@ -119,8 +173,11 @@ class Stroke:
 
         self.steno_keys = steno_keys
 
-        # Determine if this stroke is a correction stroke.
-        self.is_correction = (self.rtfcre == system.UNDO_STROKE_STENO)
+        self.is_correction = (self.rtfcre == system.UNDO_STROKE_STENO)  # type: bool
+        """
+        Whether this stroke is a `correction` stroke, and can be used to undo
+        the previous stroke.
+        """
 
     def __hash__(self):
         return hash(self.rtfcre)
