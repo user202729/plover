@@ -89,17 +89,16 @@ class DictionaryConfig(namedtuple('DictionaryConfig', 'path enabled')):
 
 ConfigFullKey = typing.Tuple[str, ...]
 """
-A full_key tuple, where the first item is the option name,
+A full_key tuple, where the first item is the option name (a string),
 and the rest are option-specific keys
 (such as ``('system_keymap', 'English Stenotype', 'Gemini PR')``).
 """
 
 ConfigKey = typing.Union[str, ConfigFullKey]
 """
-A configuration key. It's either a string (such as ``translation_frame_opacity``), or
-:class:`ConfigFullKey`.
+A configuration key.
 
-See :ref:`Configuration Options`.
+See :ref:`Configuration format`.
 """
 
 ConfigValue = typing.Any
@@ -113,13 +112,26 @@ ConfigOption = namedtuple('ConfigOption', '''
                           validate full_key
                           ''')
 """
+Config option.
+
 Attributes:
     name (str): Configuration option name. See :class:`ConfigKey` for more details.
     default (Callable[[Config, ConfigKey], ConfigValue]):
+        A function that returns the default configuration value.
     getter (Callable[[Config, ConfigKey], ConfigValue]):
     setter (Callable[[Config, ConfigKey, ConfigValue], None]):
     validate (Callable[[Config, ConfigKey, ConfigValue], ConfigValue]):
+        A function that given a :class:`ConfigValue`, return the type-corrected value
+        or raise :exc:`InvalidConfigOption`.
+
+        For example, the validate function of boolean options may return ``True`` when
+        the string ``"on"`` is passed in.
+
     full_key (Optional[Callable[[Config, ConfigKey], ConfigFullKey]]):
+        A function that given a :class:`ConfigKey`, return the :class:`ConfigFullKey`
+        based on the current configuration.
+
+        If the input is a :class:`ConfigFullKey` then it should return the key without change.
 """
 
 
@@ -148,8 +160,16 @@ class InvalidConfigOption(ValueError):
 
 
 def raw_option(name, default, section, option, validate):
-    # type: (str, ConfigValue, str, str, Callable) -> ConfigOption
+    # type: (str, ConfigValue, str, Optional[str], Callable) -> ConfigOption
     """
+    See :ref:`configuration-format` for more details of *name*, *section* and *option*.
+
+    Parameters:
+        name: Plover's config option *name*.
+        default: The default value for the option.
+        section: The *section* name for the option.
+        option: The *option* name for the option. If ``None`` is given, same as ``name``.
+        validate: See :attr:`ConfigOption.validate`.
     """
     option = option or name
     def getter(config, key):
@@ -394,9 +414,9 @@ class Config:
         Used by :meth:`__getitem__`.
         """
 
-        # A convenient place for other code to store a file name.
         self.path = path  # type: Optional[str]
         """
+        A convenient place for other code to store a file name.
         """
 
         self.clear()
@@ -483,7 +503,7 @@ class Config:
         Get the :class:`ConfigOption` object from the option name.
 
         Arguments:
-            key: the option name.
+            key: See :ref:`Configuration format`.
         """
         name = key[0] if isinstance(key, tuple) else key
         opt = self._OPTIONS[name]
@@ -519,7 +539,7 @@ class Config:
         Sets the property ``key`` in the configuration to the specified value.
 
         Arguments:
-            key: The option name.
+            key: See :ref:`Configuration format`.
         """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)

@@ -2,10 +2,67 @@
 ==================================
 
 .. automodule:: plover.config
-    :members:
-    :private-members:
+   
+    .. autoclass:: Config
+        :members:
+        :private-members:
+    .. autoclass:: DictionaryConfig
+        :members:
+    .. autoexception:: InvalidConfigOption
+        :members:
+    .. data:: MACHINE_CONFIG_SECTION
+    .. data:: LEGACY_DICTIONARY_CONFIG_SECTION
+    .. data:: LOGGING_CONFIG_SECTION
+    .. data:: OUTPUT_CONFIG_SECTION
+    .. data:: DEFAULT_UNDO_LEVELS
+    .. data:: MINIMUM_UNDO_LEVELS
+    .. data:: DEFAULT_SYSTEM_NAME
+    .. data:: SYSTEM_CONFIG_SECTION
+    .. data:: SYSTEM_KEYMAP_OPTION
+    .. autodata:: ConfigFullKey
+    .. autodata:: ConfigKey
+    .. autodata:: ConfigValue
+    .. autoclass:: ConfigOption
+    .. autofunction:: raw_option
+    .. autofunction:: json_option
+    .. autofunction:: int_option
+    .. autofunction:: boolean_option
+    .. autofunction:: choice_option
+    .. autofunction:: plugin_option
+    .. autofunction:: opacity_option
+    .. autofunction:: path_option
+    .. autofunction:: enabled_extensions_option
+    .. autofunction:: machine_specific_options
+    .. autofunction:: system_keymap_option
+    .. autofunction:: dictionaries_option
 
-    (**TODO** exclude auto members from :class:`ConfigOption`?)
+.. _configuration-format:
+
+Configuration format
+--------------------
+
+Plover saves the configuration into ``.cfg`` files with the ``configparser`` module.
+Each configuration value is stored inside a *section* and with an *option*.
+
+For example, with this configuration file::
+
+    [Output Configuration]
+    undo_levels = 100
+
+in the section named ``Output Configuration``, the value of the option ``undo_levels`` is ``100``.
+
+The *option* (``configparser``'s *option* value) is usually (but not always) the same as the *name*.
+For example:
+
+* the option with *key* ``show_stroke_display`` has *section* ``Stroke Display`` and *option* ``show``.
+* the option with *key* ``classic_dictionaries_display_order`` has *section* ``GUI`` and *option* ``classic_dictionaries_display_order``.
+
+Each option can be accessed/set with its *key*. The key can be either
+
+* the *name* of the option (which is always a ``str``, such as ``show_stroke_display``), or
+* a *full key*. See :class:`ConfigFullKey`.
+
+See :ref:`Configuration Options` for the list of all configuration key names.
 
 
 .. _configuration-options:
