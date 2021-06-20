@@ -38,7 +38,7 @@
 
 .. _configuration-format:
 
-Configuration format
+Configuration Format
 --------------------
 
 Plover saves the configuration into ``.cfg`` files with the ``configparser`` module.

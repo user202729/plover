@@ -98,7 +98,7 @@ ConfigKey = typing.Union[str, ConfigFullKey]
 """
 A configuration key.
 
-See :ref:`Configuration format`.
+See :ref:`Configuration Format`.
 """
 
 ConfigValue = typing.Any
@@ -162,7 +162,7 @@ class InvalidConfigOption(ValueError):
 def raw_option(name, default, section, option, validate):
     # type: (str, ConfigValue, str, Optional[str], Callable) -> ConfigOption
     """
-    See :ref:`configuration-format` for more details of *name*, *section* and *option*.
+    See :ref:`Configuration Format` for more details of *name*, *section* and *option*.
 
     Parameters:
         name: Plover's config option *name*.
@@ -503,7 +503,7 @@ class Config:
         Get the :class:`ConfigOption` object from the option name.
 
         Arguments:
-            key: See :ref:`Configuration format`.
+            key: See :ref:`Configuration Format`.
         """
         name = key[0] if isinstance(key, tuple) else key
         opt = self._OPTIONS[name]
@@ -539,7 +539,7 @@ class Config:
         Sets the property ``key`` in the configuration to the specified value.
 
         Arguments:
-            key: See :ref:`Configuration format`.
+            key: See :ref:`Configuration Format`.
         """
         key, opt = self._lookup(key)
         value = opt.validate(self._config, key, value)
