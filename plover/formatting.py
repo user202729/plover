@@ -1,10 +1,8 @@
 # Copyright (c) 2010-2011 Joshua Harlan Lifton.
 # See LICENSE.txt for details.
 
-"""This module converts translations to printable text.
-
-This module defines and implements plover's custom dictionary language.
-
+"""This module handles parsing Plover's dictionary entry mini-language and
+converting it into *actions* that the translation engine can execute.
 """
 
 from enum import Enum
@@ -140,6 +138,13 @@ ATOM_RE = re.compile(r"""(?:%s%s|%s%s|[^%s%s])+ # One or more of anything
                              META_END, META_START, META_END,
                              META_END),
                      re.VERBOSE)
+"""
+A regular expression for detecting individual formatting items in a
+dictionary entry. Each *atom* is either raw text, possibly containing some
+escaped braces (``\{`` and ``\}``), or a "meta" formatting or translation
+command enclosed in braces (e.g. ``{*<}``).
+"""
+
 
 # A more human-readable version of the above RE is:
 #
@@ -154,6 +159,11 @@ ATOM_RE = re.compile(r"""(?:%s%s|%s%s|[^%s%s])+ # One or more of anything
 
 
 WORD_RX = re.compile(r'(?:\d+(?:[.,]\d+)+|[\'\w]+[-\w\']*|[^\w\s]+)\s*', re.UNICODE)
+"""
+A regular expression for detecting words in translation output.
+
+See :class:`RetroFormatter` for the definition of a word.
+"""
 
 
 class RetroFormatter:
@@ -165,12 +175,25 @@ class RetroFormatter:
         fragments: "__________-----------______------________-------_________"
         words    : "__________---------__----__----__----____-____--_____----"
 
+    Each *word*
+    consists of either an uninterrupted series of letters or numbers, or
+    a punctuation character that may be surrounded by whitespace characters on
+    either side.
+
+    Each *fragment* is a series of non-whitespace characters followed by
+    zero or more trailing whitespace characters.
+
     Attributes:
         previous_translations ():
 
     """
 
     FRAGMENT_RX = re.compile(r'\s*[^\s]+\s*|^\s*$')
+    """
+    A regular expression for detecting fragments in a string of text.
+
+    See :class:`RetroFormatter` for the definition of a fragment.
+    """
 
     def __init__(self, previous_translations):
         self.previous_translations = previous_translations
