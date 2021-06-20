@@ -7,7 +7,7 @@ The steno engine is the core of Plover; it handles communication between the
 machine and the translation and formatting subsystems, and manages configuration
 and dictionaries.
 
-.. autoclass:: StenoEngine(config, keyboard_emulation)
+.. autoclass:: StenoEngine
     :members: __init__
     :private-members: _config
 
