@@ -12,8 +12,18 @@ keyboard emulation (writing the output from steno translation).
     Encapsulates logic for capturing keyboard input. An instance of this is
     used internally by Plover's built-in keyboard plugin.
 
-    Define the :meth:`key_down` and :meth:`key_up` methods below to implement
+    Modify the :attr:`key_down` and :attr:`key_up` attributes below to implement
     custom behavior that gets executed when a key is pressed or released.
+
+    .. method:: start()
+
+        Start a thread to capture the keyboard.
+
+    .. method:: cancel()
+
+        Stop the keyboard-capturing thread. Also stop suppressing the keyboard.
+
+        See also: :meth:`suppress_keyboard`.
 
     .. data:: SUPPORTED_KEYS_LAYOUT
 
@@ -35,18 +45,26 @@ keyboard emulation (writing the output from steno translation).
         output through regular typing. This allows us to intercept keyboard
         events when using keyboard input.
 
-        :type suppressed_keys: List[str]
+        If the function is called without any parameters, unsuppress all keys.
 
-    .. method:: key_down(key)
+        :param Sequence[str] suppressed_keys:
 
-        A custom method that is called when a key is pressed. `key` is a string
+    .. attribute:: key_down
+
+        An attribute that is called when a key is pressed.
+
+        The called function should take `key`, a string
         representing the name of the key, and must be in :data:`SUPPORTED_KEYS`.
+
         Does nothing by default.
 
-    .. method:: key_up(key)
+    .. attribute:: key_up
 
-        A custom method that is called when a key is released. `key` is a string
+        An attribute that is called when a key is released.
+
+        The called function should take `key`, a string
         representing the name of the key, and must be in :data:`SUPPORTED_KEYS`.
+
         Does nothing by default.
 
 
