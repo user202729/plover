@@ -9,7 +9,7 @@ and dictionaries.
 
 .. autoclass:: StenoEngine
     :members: __init__
-    :private-members: _config
+    :private-members: _config, _update
 
     .. autoattribute:: HOOKS
     .. autoattribute:: machine_state
@@ -20,6 +20,7 @@ and dictionaries.
     .. automethod:: _in_engine_thread
     .. automethod:: join
     .. automethod:: load_config
+    .. autoproperty:: config
     .. automethod:: reset_machine
     .. automethod:: _send_backspaces
     .. automethod:: _send_string

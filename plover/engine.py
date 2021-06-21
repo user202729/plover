@@ -119,10 +119,12 @@ class StenoEngine:
     """
 
     def __init__(self, config, controller, keyboard_emulation):
-        # type: (Config, plover.oslayer.controller.Controller, Any) -> None
-        self._config = config
+        # type: ("plover.config.Config", plover.oslayer.controller.Controller, Any) -> None
+        self._config = config  # type: "plover.config.Config"
         """
         An object containing the engine's configuration.
+
+        See also :attr:`config`.
         """
         self._controller = controller
         """
@@ -223,8 +225,16 @@ class StenoEngine:
         self._trigger_hook('dictionaries_loaded', self._dictionaries)
 
     def _update(self, config_update=None, full=False, reset_machine=False):
-        # type: (None, bool, bool) -> None
+        # type: (Optional[Dict[str, plover.config.ConfigValue]], bool, bool) -> None
         """
+        Parameters:
+            config_update: the dictionary to update the configuration with.
+            full: Force update all configuration keys, even if the value is the same
+                as the existing value.
+            reset_machine: Force reset the machine.
+
+                The machine automatically reset when the machine type/options changes,
+                regardless of this option.
         """
         original_config = self._config.as_dict()
         # Update configuration.
@@ -531,27 +541,34 @@ class StenoEngine:
         """
         TODO type annotation in comment does not work
 
-        Return the engine's configuration (:attr:`_config`) as a dictionary.
+        The engine's configuration (:attr:`_config`) as a dictionary.
+
+        See also: :meth:`__getitem__`, :meth:`__setitem__`.
+
+        Note that setting this property will update the configuration
+        instead of completely overriding it.
         """
         return self._config.as_dict()
 
     @config.setter
     def config(self, update):
         # type: (Dict[str, plover.config.ConfigValue]) -> None
-        """
-        """
         self._same_thread_hook(self._update, config_update=update)
 
     @with_lock
     def __getitem__(self, setting):
         """
         Returns the value of the configuration property `setting`.
+
+        See also: :meth:`plover.config.Config.__getitem__`.
         """
         return self._config[setting]
 
     def __setitem__(self, setting, value):
         """
         Sets the configuration property `setting` to `value`.
+
+        See also: :meth:`plover.config.Config.__setitem__`.
         """
         self.config = {setting: value}
 

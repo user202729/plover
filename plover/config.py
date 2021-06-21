@@ -114,12 +114,26 @@ ConfigOption = namedtuple('ConfigOption', '''
 """
 Config option.
 
+There are several functions to construct :class:`ConfigOption` objects:
+:func:`raw_option`, :func:`int_option`, :func:`boolean_option`,
+:func:`choice_option`, :func:`json_option`, :func:`path_option`, etc.
+
 Attributes:
     name (str): Configuration option name. See :class:`ConfigKey` for more details.
+
     default (Callable[[Config, ConfigKey], ConfigValue]):
         A function that returns the default configuration value.
+
     getter (Callable[[Config, ConfigKey], ConfigValue]):
+        A function to get the configuration value from the :class:`Config` object.
+
+        The value should be read directly from :attr:`Config._config`.
+
     setter (Callable[[Config, ConfigKey, ConfigValue], None]):
+        A function to save the configuration value to the :class:`Config` object.
+
+        The value should be written directly to :attr:`Config._config`.
+
     validate (Callable[[Config, ConfigKey, ConfigValue], ConfigValue]):
         A function that given a :class:`ConfigValue`, return the type-corrected value
         or raise :exc:`InvalidConfigOption`.
@@ -162,6 +176,8 @@ class InvalidConfigOption(ValueError):
 def raw_option(name, default, section, option, validate):
     # type: (str, ConfigValue, str, Optional[str], Callable) -> ConfigOption
     """
+    String-valued option. (can be stored directly without changes into the configuration)
+
     See :ref:`Configuration Format` for more details of *name*, *section* and *option*.
 
     Parameters:
@@ -179,6 +195,12 @@ def raw_option(name, default, section, option, validate):
     return ConfigOption(name, lambda c, k: default, getter, setter, validate, None)
 
 def json_option(name, default, section, option, validate):
+    """
+    Option whole values can be JSON-serializable.
+
+    Because ``ConfigParser`` only support string-valued values, complex values (list or dict)
+    should be JSON-serialized.
+    """
     option = option or name
     def getter(config, key):
         value = config._config[section][option]
@@ -194,8 +216,11 @@ def json_option(name, default, section, option, validate):
     return ConfigOption(name, default, getter, setter, validate, None)
 
 def int_option(name, default, minimum, maximum, section, option=None):
-    # type: (str, int, int, int, str, str) -> ConfigOption
+    # type: (str, int, int, int, str, Optional[str]) -> ConfigOption
     """
+    Integer-valued option.
+
+    See :func:`raw_option` for the meaning of `section` and `option` parameters.
     """
     option = option or name
     def getter(config, key):
@@ -213,6 +238,13 @@ def int_option(name, default, minimum, maximum, section, option=None):
     return ConfigOption(name, lambda c, k: default, getter, setter, validate, None)
 
 def boolean_option(name, default, section, option=None):
+    """
+    Boolean-valued option.
+
+    See :func:`raw_option` for the meaning of `section` and `option` parameters,
+    and :func:`plover.misc.boolean` for how the value may be stored in the configuration
+    or set from the API.
+    """
     option = option or name
     def getter(config, key):
         return config._config[section][option]
@@ -226,6 +258,12 @@ def boolean_option(name, default, section, option=None):
     return ConfigOption(name, lambda c, k: default, getter, setter, validate, None)
 
 def choice_option(name, choices, section, option=None):
+    # type: (str, Sequence[str], str, Optional[str]) -> ConfigOption
+    """
+    Multiple-choice option.
+    
+    See :func:`raw_option` for the meaning of `section` and `option` parameters.
+    """
     default = choices[0]
     def validate(config, key, value):
         if value not in choices:
@@ -242,13 +280,20 @@ def plugin_option(name, plugin_type, default, section, option=None):
     return raw_option(name, default, section, option, validate)
 
 def opacity_option(name, section, option=None):
-    # type: (str, str, str) -> ConfigOption
+    # type: (str, str, Optional[str]) -> ConfigOption
     """
+    Special case of :func:`int_option` where the range is limited to 0-100.
     """
-    
     return int_option(name, 100, 0, 100, section, option)
 
 def path_option(name, default, section, option=None):
+    """
+    Option to store a path.
+
+    Handle shortened path in the configuration.
+
+    See also: :func:`plover.misc.shorten_path`, :func:`plover.misc.expand_path`.
+    """
     option = option or name
     def getter(config, key):
         return expand_path(config._config[section][option])
@@ -450,7 +495,7 @@ class Config:
                 self._config.write(fp)
 
     def _set(self, section, option, value):
-        # type: (str, str, ConfigValue) -> None
+        # type: (str, str, str) -> None
         """
         Set option in the internal config object.
 
@@ -518,7 +563,7 @@ class Config:
         full configuration if not available.
 
         Arguments:
-            key:
+            key: See :ref:`Configuration Format`.
         """
         key, opt = self._lookup(key)
         if key in self._cache:
