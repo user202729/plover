@@ -512,9 +512,6 @@ class Config:
             self._config.add_section(section)
         self._config.set(section, option, value)
 
-    # Note: order matters, e.g. machine_type comes before
-    # machine_specific_options and system_keymap because
-    # the latter depend on the former.
     _OPTIONS = OrderedDict((opt.name, opt) for opt in [
         # Output.
         choice_option('space_placement', ('Before Output', 'After Output'), OUTPUT_CONFIG_SECTION),
@@ -544,6 +541,16 @@ class Config:
     ])  # type: OrderedDict[str, ConfigOption]
     """
     Mapping of option name to :class:`ConfigOption` objects.
+
+    This is a class attribute.
+
+    Note: order matters, e.g. ``machine_type`` comes before
+    ``machine_specific_options`` and ``system_keymap`` because
+    the latter depend on the former.
+
+    It's possible for plugins to modify this value to save additional fields
+    into Plover's configuration file, although this feature violates internal
+    member access rules and is not supported by Plover.
 
     :meta hide-value:
     """
