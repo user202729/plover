@@ -195,11 +195,17 @@ def raw_option(name, default, section, option, validate):
     return ConfigOption(name, lambda c, k: default, getter, setter, validate, None)
 
 def json_option(name, default, section, option, validate):
+    # type: (str, Callable, str, Optional[str], Callable) -> ConfigOption
     """
-    Option whole values can be JSON-serializable.
+    Option whole values can be JSON-serialized.
 
     Because ``ConfigParser`` only support string-valued values, complex values (list or dict)
     should be JSON-serialized.
+
+    Parameters:
+        default: See :attr:`ConfigOption.default`.
+        option: See ``option`` parameter of :func:`raw_option`.
+        validate: See :attr:`ConfigOption.validate`.
     """
     option = option or name
     def getter(config, key):
