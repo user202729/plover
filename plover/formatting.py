@@ -166,6 +166,8 @@ WORD_RX = re.compile(r'(?:\d+(?:[.,]\d+)+|[\'\w]+[-\w\']*|[^\w\s]+)\s*', re.UNIC
 """
 A regular expression for detecting words in translation output.
 
+(in particular, it has no capturing group, and matches a word and the trailing space)
+
 See :class:`RetroFormatter` for the definition of a word.
 """
 
@@ -261,6 +263,8 @@ class RetroFormatter:
         For <strip> to be properly supported when a custom regexp is
         passed as <rx>, then it must include trailing whitespace as
         part of each word.
+
+        (the default value of <rx> is :const:`WORD_RX`)
         """
         assert not rx.groups
         for fragment in self.iter_last_fragments():
@@ -278,7 +282,7 @@ class RetroFormatter:
         Arguments:
             count:
             strip:
-            rx: The regular expression to match ???
+            rx: See ``rx`` parameter of :meth:`iter_last_words`.
         """
         word_list = []
         for w in self.iter_last_words(strip=strip, rx=rx):
@@ -306,6 +310,11 @@ class _Context(RetroFormatter):
     Keep tracks of previous actions as well as newly translated actions,
     offer helpers for creating new actions and convenient access to past
     actions/text/words.
+
+    Inherits from :class:`RetroFormatter`.
+
+    This object is not permanently stored, but a temporary object is
+    created and passed around in functions in :meth:`Formatter.format`.
 
     Attributes:
         previous_translations (typing.List[Translation]):
