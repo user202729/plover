@@ -157,6 +157,11 @@ class StenoDictionary:
         dictionary object. If `resource` refers to an :ref:`asset path<asset_paths>`
         or the file is not writable by the user, the dictionary will be
         read-only.
+
+        This should be called from a subclass, such as
+        :class:`~plover.dictionary.json_dict.JsonDictionary`.
+
+        See also: :meth:`_load`.
         """
         filename = resource_filename(resource)
         timestamp = resource_timestamp(filename)
@@ -174,6 +179,8 @@ class StenoDictionary:
         """
         Saves the contents of the dictionary to the file it was loaded from.
         This may need to be called after adding dictionary entries.
+
+        See also: :meth:`_save`.
         """
         assert not self.readonly
         with resource_update(self.path) as temp_path:
@@ -185,12 +192,18 @@ class StenoDictionary:
         Reads the dictionary at `filename` and loads its contents into
         the current dictionary. This is only called when the dictionary is
         first initialized so it is guaranteed to be empty.
+
+        Subclasses (such as :class:`~plover.dictionary.json_dict.JsonDictionary`)
+        should override this method to support specific dictionary formats.
         """
         raise NotImplementedError()
 
     def _save(self, filename):
         """
         Writes the contents of the dictionary to `filename`.
+
+        Subclasses (such as :class:`~plover.dictionary.json_dict.JsonDictionary`)
+        should override this method to support specific dictionary formats.
         """
         raise NotImplementedError()
 
