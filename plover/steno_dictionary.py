@@ -41,10 +41,17 @@ from plover.resource import ASSET_SCHEME, resource_filename, resource_timestamp,
 
 
 class StenoDictionary:
-    """A steno dictionary.
+    """Represents a single in-memory steno dictionary.
 
     This dictionary maps immutable sequences to translations and tracks the
     length of the longest key.
+
+    The implementation cannot assume that the dictionary is saved to a file
+    before dictionaries entries are added, and the file content must not
+    depend on the file name (see :meth:`save` for more details)
+
+    Furthermore, the implementation should not maintain a persistent connection
+    to the file (while being non-compliant, it's possible with careful implementation)
     """
 
     readonly = False  # type: bool
@@ -177,8 +184,11 @@ class StenoDictionary:
 
     def save(self):
         """
-        Saves the contents of the dictionary to the file it was loaded from.
+        Saves the contents of the dictionary to the file it was loaded from (:attr:`path`).
         This may need to be called after adding dictionary entries.
+
+        The default implementation creates a temporary file, write the dictionary
+        to that file, then move the temporary file to the original file.
 
         See also: :meth:`_save`.
         """
