@@ -22,7 +22,10 @@ class Controller:
 
     Uses ``multiprocessing.connection`` internally.
 
-    To use this object:
+    To use this object in client mode: simply create a :class:`Controller` instance,
+    then use :meth:`send_command` or :meth:`_send_message`.
+
+    To use this object in listener mode:
 
     * Create a :class:`Controller` instance.
     * Call :meth:`__enter__` (usually with a ``with`` statement)
@@ -30,6 +33,9 @@ class Controller:
     * If it's ``False``, there's an existing process listening, or that process exited
       abnormally. :meth:`force_cleanup` can be called in the latter case.
     * If it's ``True``, call :meth:`start`.
+
+    Note that :meth:`__exit__` should not be called too early, otherwise the server
+    will stop listening.
     
     See the source code of ``plover.scripts.main`` for an example.
 
@@ -78,7 +84,7 @@ class Controller:
     def __enter__(self):
         # type: () -> Controller
         """
-        Initialize the object.
+        Initialize the object to be used in listener mode.
 
         Return:
             this controller object.
@@ -96,8 +102,11 @@ class Controller:
                     raise
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback)->None:
         """
+        Close the underlying connection when necessary.
+
+        :meth:`stop` should be called first, if :meth:`start` is previously called.
         """
         if self.is_owner:
             self._listen.close()
@@ -187,7 +196,7 @@ class Controller:
         self._thread = Thread(target=self._run)
         self._thread.start()
 
-    def stop(self):
+    def stop(self)->None:
         """
         Stop listening. See :meth:`start`.
         """
