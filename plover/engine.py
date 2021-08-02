@@ -227,6 +227,8 @@ class StenoEngine:
     def _update(self, config_update=None, full=False, reset_machine=False):
         # type: (Optional[Dict[str, plover.config.ConfigValue]], bool, bool) -> None
         """
+        Update the engine on config update or machine refresh.
+
         Parameters:
             config_update: the dictionary to update the configuration with.
             full: Force update all configuration keys, even if the value is the same

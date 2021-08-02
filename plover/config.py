@@ -596,6 +596,9 @@ class Config:
         """
         Sets the property ``key`` in the configuration to the specified value.
 
+        Note: you might want to use :meth:`plover.engine.StenoEngine.__setitem__` instead,
+        otherwise :meth:`~plover.engine.StenoEngine._update` will not be called.
+
         Arguments:
             key: See :ref:`Configuration Format`.
         """
