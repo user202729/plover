@@ -503,7 +503,15 @@ class _State:
         self.tail = None
 
     def prev(self, count=None):
-        """Get the most recent translations."""
+        # type: (typing.Optional[int]) -> typing.List[Translation]
+        """Get the most recent translations.
+
+        More recent translations appear later in the resulting list.
+
+        Arguments:
+            count: Either ``None`` (the default), or a strictly positive integer for the number
+                of last (most recent) translations to drop from the result.
+        """
         if count is not None:
             prev = self.translations[:-count]
         else:
