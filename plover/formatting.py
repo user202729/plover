@@ -749,7 +749,7 @@ class _Action:
                  # Next.
                  next_attach=False, next_case=None
                 ):
-        # type: (bool, str, bool, typing.Optional[str], bool, str, bool, Case, typing.Optional[str], str, typing.Optional[bool], typing.Optional[str], typing.Optional[str], bool, bool) -> None
+        # type: (bool, str, bool, typing.Optional[str], bool, str, bool, Case, typing.Optional[str], str, typing.Optional[bool], typing.Optional[str], typing.Optional[str], bool, typing.Optional[Case]) -> None
         """Initialize a new action.
 
         Arguments:
