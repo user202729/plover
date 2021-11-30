@@ -330,12 +330,18 @@ class _Context(RetroFormatter):
 
     def new_action(self):
         # type: () -> _Action
-        """Create a new action, only copying global state."""
+        """Create a new action, only copying global state.
+
+        See also :meth:`_Action.new_state`.
+        """
         return self.last_action.new_state()
 
     def copy_last_action(self):
         # type: () -> _Action
-        """Create a new action, cloning the last action state."""
+        """Create a new action, cloning the last action state.
+
+        See also :meth:`_Action.copy_state`.
+        """
         return self.last_action.copy_state()
 
     def translated(self, action):
@@ -830,7 +836,6 @@ class _Action:
         # type: () -> _Action
         """
         """
-        
         return _Action(
             # Previous.
             prev_attach=self.next_attach,
