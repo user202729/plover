@@ -224,8 +224,7 @@ class KeyboardCapture(Capture):
             # a pointer device with a key class (to fully support NKRO).
             if devinfo.use not in (xinput.SlaveKeyboard, xinput.SlavePointer):
                 continue
-            # Ignore XTest keyboard device.
-            if 'Virtual core XTEST keyboard' == devinfo.name:
+            if 'g Heavy Industries Georgi Keyboard' != devinfo.name:
                 continue
             # Ignore disabled devices.
             if not devinfo.enabled:
