@@ -53,8 +53,6 @@ class Keyboard(StenotypeBase):
             # Collect the keys in the stroke, in case first_up_chord_send is False
             self._stroke_keys = set()
         self._keyboard_capture = None
-        self._last_stroke_key_down_count = 0
-        self._stroke_key_down_count = 0
         self._update_bindings()
 
     def _update_suppression(self):
@@ -110,13 +108,11 @@ class Keyboard(StenotypeBase):
         self._update_suppression()
 
     def suppress_last_stroke(self, send_backspaces):
-        send_backspaces(self._last_stroke_key_down_count)
-        self._last_stroke_key_down_count = 0
+        pass
 
     def _key_down(self, key):
         """Called when a key is pressed."""
         assert key is not None
-        self._stroke_key_down_count += 1
         self._down_keys.add(key)
         if self._first_up_chord_send:
             self._chord_already_sent = False
@@ -143,7 +139,6 @@ class Keyboard(StenotypeBase):
             ):
                 return
 
-        self._last_stroke_key_down_count = self._stroke_key_down_count
         if self._first_up_chord_send:
             steno_keys = {self._bindings.get(k) for k in self._down_keys | {key}}
             self._chord_already_sent = True
@@ -153,7 +148,6 @@ class Keyboard(StenotypeBase):
         steno_keys -= {None}
         if steno_keys:
             self._notify(steno_keys)
-        self._stroke_key_down_count = 0
 
     @classmethod
     def get_option_info(cls):
