@@ -24,6 +24,7 @@ http://tronche.com/gui/x/xlib/input/keyboard-encoding.html
 import os
 import select
 import threading
+import subprocess
 from time import sleep
 
 from Xlib import X, XK
@@ -214,18 +215,18 @@ class KeyboardCapture(Capture):
 
     def _update_devices(self, display):
         # Find all keyboard devices.
-        # This function is never called while the event loop thread is running,
-        # so it is unnecessary to lock self._display_lock.
         keyboard_devices = []
         for devinfo in display.xinput_query_device(xinput.AllDevices).devices:
             # Only keep slave devices.
             # Note: we look at pointer devices too, as some keyboards (like the
             # VicTop mechanical gaming keyboard) register 2 devices, including
             # a pointer device with a key class (to fully support NKRO).
-            if devinfo.use not in (xinput.SlaveKeyboard, xinput.SlavePointer):
+            if devinfo.use not in (xinput.SlaveKeyboard, xinput.SlavePointer, xinput.FloatingSlave):
                 continue
             if 'g Heavy Industries Georgi Keyboard' != devinfo.name:
                 continue
+            if devinfo.use != xinput.FloatingSlave:
+                subprocess.run(["xinput", "--float", str(devinfo.deviceid)])
             # Ignore disabled devices.
             if not devinfo.enabled:
                 continue
@@ -243,6 +244,12 @@ class KeyboardCapture(Capture):
     def _on_event(self, event):
         if event.type != GenericEventCode:
             return
+        if event.evtype == xinput.HierarchyChanged:
+            if event.data.flags & (xinput.SlaveAdded | xinput.DeviceEnabled):
+                assert self._event_loop._lock.locked()
+                self._update_devices(self._event_loop._display)
+            return
+
         if event.evtype not in (xinput.KeyPress, xinput.KeyRelease):
             return
         assert event.data.sourceid in self._devices
@@ -270,7 +277,9 @@ class KeyboardCapture(Capture):
             self._window.xinput_select_events([
                 (deviceid, XINPUT_EVENT_MASK)
                 for deviceid in self._devices
-            ])
+                ] + [
+                    (xinput.AllDevices, xinput.HierarchyChangedMask)
+                    ])
             self._event_loop.start()
 
     def cancel(self):
@@ -284,34 +293,8 @@ class KeyboardCapture(Capture):
         with self._event_loop:
             self._suppress_keys(suppressed_keys)
 
-    def _grab_key(self, keycode):
-        for deviceid in self._devices:
-            self._window.xinput_grab_keycode(deviceid,
-                                             X.CurrentTime,
-                                             keycode,
-                                             xinput.GrabModeAsync,
-                                             xinput.GrabModeAsync,
-                                             True,
-                                             XINPUT_EVENT_MASK,
-                                             (0, X.Mod2Mask))
-
-    def _ungrab_key(self, keycode):
-        for deviceid in self._devices:
-            self._window.xinput_ungrab_keycode(deviceid,
-                                               keycode,
-                                               (0, X.Mod2Mask))
-
     def _suppress_keys(self, suppressed_keys):
-        suppressed_keys = set(suppressed_keys)
-        if self._suppressed_keys == suppressed_keys:
-            return
-        for key in self._suppressed_keys - suppressed_keys:
-            self._ungrab_key(KEY_TO_KEYCODE[key])
-            self._suppressed_keys.remove(key)
-        for key in suppressed_keys - self._suppressed_keys:
-            self._grab_key(KEY_TO_KEYCODE[key])
-            self._suppressed_keys.add(key)
-        assert self._suppressed_keys == suppressed_keys
+        pass
 
 
 # Keysym to Unicode conversion table.
