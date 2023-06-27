@@ -84,15 +84,17 @@ class Keyboard(StenotypeBase):
         """Begin listening for output from the stenotype machine."""
         self._initializing()
         try:
-            self._keyboard_capture = KeyboardCapture()
+            self._keyboard_capture = KeyboardCapture(self._ready, self._error)
             self._keyboard_capture.key_down = self._key_down
             self._keyboard_capture.key_up = self._key_up
-            self._keyboard_capture.start()
+            if self._keyboard_capture.start():
+                self._ready()
+            else:
+                self._error()
             self._update_suppression()
         except:
             self._error()
             raise
-        self._ready()
 
     def stop_capture(self):
         """Stop listening for output from the stenotype machine."""

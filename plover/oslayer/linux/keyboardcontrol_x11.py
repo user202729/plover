@@ -206,15 +206,21 @@ class XEventLoop:
 
 class KeyboardCapture(Capture):
 
-    def __init__(self):
+    def __init__(self, on_ready, on_error):
         super().__init__()
         self._event_loop = None
         self._window = None
         self._suppressed_keys = set()
         self._devices = []
 
+        # these 2 functions will only be called strictly after start() finishes.
+        # start() will return a bool depends on whether it finds a keyboard.
+        self._on_ready = on_ready
+        self._on_error = on_error
+
     def _update_devices(self, display):
         # Find all keyboard devices.
+        # Return bool: whether the keyboard is found or not.
         keyboard_devices = []
         for devinfo in display.xinput_query_device(xinput.AllDevices).devices:
             # Only keep slave devices.
@@ -235,19 +241,27 @@ class KeyboardCapture(Capture):
                 if c.type == xinput.KeyClass:
                     keyboard_devices.append(devinfo.deviceid)
                     break
+        if not keyboard_devices:
+            return False
         if XINPUT_DEVICE_ID == xinput.AllDevices:
             self._devices = keyboard_devices
         else:
             self._devices = [XINPUT_DEVICE_ID]
         log.info('XInput devices: %s', ', '.join(map(str, self._devices)))
+        return True
 
     def _on_event(self, event):
         if event.type != GenericEventCode:
             return
         if event.evtype == xinput.HierarchyChanged:
-            if event.data.flags & (xinput.SlaveAdded | xinput.DeviceEnabled):
+            if event.data.flags & (xinput.SlaveAdded | xinput.DeviceEnabled |
+                    xinput.SlaveRemoved | xinput.DeviceDisabled
+                    ):
                 assert self._event_loop._lock.locked()
-                self._update_devices(self._event_loop._display)
+                if self._update_devices(self._event_loop._display):
+                    self._on_ready()
+                else:
+                    self._on_error()
             return
 
         if event.evtype not in (xinput.KeyPress, xinput.KeyRelease):
@@ -268,11 +282,16 @@ class KeyboardCapture(Capture):
             self.key_up(key)
 
     def start(self):
+        # return bool: whether it finds a keyboard. Will start "capturing" nevertheless.
+        # if initially there's no keyboard, on_ready() will be called when it finds one.
+        
+        # as mentioned before, on_ready() or on_error() will not be called before this function returns,
+        # but the return value of this function can be used to check whether the keyboard is connected or not.
         self._event_loop = XEventLoop(self._on_event, name='KeyboardCapture')
         with self._event_loop as display:
             if not display.has_extension('XInputExtension'):
                 raise Exception('X11\'s XInput extension is required, but could not be found.')
-            self._update_devices(display)
+            result = self._update_devices(display)
             self._window = display.screen().root
             self._window.xinput_select_events([
                 (deviceid, XINPUT_EVENT_MASK)
@@ -281,6 +300,7 @@ class KeyboardCapture(Capture):
                     (xinput.AllDevices, xinput.HierarchyChangedMask)
                     ])
             self._event_loop.start()
+        return result
 
     def cancel(self):
         if self._event_loop is None:
