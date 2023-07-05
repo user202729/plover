@@ -151,6 +151,11 @@ class XEventLoop:
         self._on_event = on_event
         self._lock = threading.Lock()
         self._display = Display()
+        def error_handler(e, z):
+            import traceback
+            traceback.print_stack()
+            print("X protocol error:", e, z)
+        self._display.set_error_handler(error_handler)
         self._thread = threading.Thread(name=name, target=self._run)
         self._pipe = os.pipe()
         self._readfds = (self._pipe[0], self._display.fileno())
