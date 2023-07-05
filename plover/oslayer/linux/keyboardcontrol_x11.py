@@ -220,6 +220,8 @@ class KeyboardCapture(Capture):
 
     def _update_devices(self, display):
         # Find all keyboard devices.
+        # At the same time also update the event selection to only receive event from that keyboard
+        # (as well as events that a keyboard is added/removed)
         # Return bool: whether the keyboard is found or not.
         keyboard_devices = []
         for devinfo in display.xinput_query_device(xinput.AllDevices).devices:
@@ -241,14 +243,27 @@ class KeyboardCapture(Capture):
                 if c.type == xinput.KeyClass:
                     keyboard_devices.append(devinfo.deviceid)
                     break
-        if not keyboard_devices:
-            return False
-        if XINPUT_DEVICE_ID == xinput.AllDevices:
-            self._devices = keyboard_devices
+        old_devices = self._devices
+        if keyboard_devices:
+            if XINPUT_DEVICE_ID == xinput.AllDevices:
+                self._devices = keyboard_devices
+            else:
+                self._devices = [XINPUT_DEVICE_ID]
         else:
-            self._devices = [XINPUT_DEVICE_ID]
-        log.info('XInput devices: %s', ', '.join(map(str, self._devices)))
-        return True
+            self._devices = []
+
+        if old_devices != self._devices:
+            log.info('XInput devices: %s', ', '.join(map(str, self._devices)))
+            self._window = display.screen().root
+            self._window.xinput_select_events([
+                (deviceid, XINPUT_EVENT_MASK)
+                for deviceid in self._devices
+                ] + [
+                    (xinput.AllDevices, xinput.HierarchyChangedMask)
+                    ])
+            display.sync()
+
+        return bool(keyboard_devices)
 
     def _on_event(self, event):
         if event.type != GenericEventCode:
@@ -292,13 +307,6 @@ class KeyboardCapture(Capture):
             if not display.has_extension('XInputExtension'):
                 raise Exception('X11\'s XInput extension is required, but could not be found.')
             result = self._update_devices(display)
-            self._window = display.screen().root
-            self._window.xinput_select_events([
-                (deviceid, XINPUT_EVENT_MASK)
-                for deviceid in self._devices
-                ] + [
-                    (xinput.AllDevices, xinput.HierarchyChangedMask)
-                    ])
             self._event_loop.start()
         return result
 
