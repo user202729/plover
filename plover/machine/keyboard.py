@@ -53,6 +53,17 @@ def keyboard_modes_dict(value):
     raise ValueError(value)
 
 
+_last_log_time=None
+def _debug_log(*args, **kwargs)->None:
+    import time
+    log_time=time.time()
+    global _last_log_time
+    if _last_log_time is not None and log_time-_last_log_time>=0.3:
+        print()
+    _last_log_time=log_time
+    print(f"{log_time%100:08.4f}", *args, **kwargs)
+
+
 class Keyboard(StenotypeBase):
     """Standard stenotype interface for a computer keyboard.
 
@@ -76,6 +87,7 @@ class Keyboard(StenotypeBase):
     def __init__(self, params):
         """Monitor the keyboard's events."""
         super().__init__()
+        self._delay_timers={}
         self._arpeggiate = params['arpeggiate']
         self._first_up_chord_send = params['first_up_chord_send']
         if self._arpeggiate and self._first_up_chord_send:
@@ -178,7 +190,7 @@ class Keyboard(StenotypeBase):
             self._keyboard_capture.on_ready = self._ready
             self._keyboard_capture.on_error = self._error
             self._keyboard_capture.key_down = self._key_down
-            self._keyboard_capture.key_up = self._key_up
+            self._keyboard_capture.key_up = self._delayed_key_up
             if self._keyboard_capture.start():
                 self._ready()
             else:
@@ -229,10 +241,13 @@ class Keyboard(StenotypeBase):
 
     def _key_down(self, key):
         """Called when a key is pressed."""
+        self._delete_pending_timer(key)
         assert key is not None
 
         if key in self._down_keys:
             return
+
+        _debug_log("down", self._bindings.get(key))
 
         self._unhold()
 
@@ -279,7 +294,26 @@ class Keyboard(StenotypeBase):
             self._stroke_keys.clear()
         steno_keys -= {None}
         if steno_keys:
+            from plover.steno import Stroke
+            stroke = Stroke(steno_keys)
+            _debug_log("****", stroke.rtfcre)
             self._notify(steno_keys)
+
+    def _delete_pending_timer(self, key)->None:
+        if key in self._delay_timers:
+            self._delay_timers[key].cancel()
+            del self._delay_timers[key]
+
+    def _delayed_key_up(self, key)->None:
+        _debug_log("up--", self._bindings.get(key))
+
+        #self._key_up(key)
+
+        self._delete_pending_timer(key)
+        import threading
+        timer=threading.Timer(0.02, self._key_up, args=(key,))
+        self._delay_timers[key]=timer
+        timer.start()
 
     @classmethod
     def get_option_info(cls):

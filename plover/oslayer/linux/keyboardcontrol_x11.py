@@ -226,7 +226,7 @@ class KeyboardCapture(Capture):
             # a pointer device with a key class (to fully support NKRO).
             if devinfo.use not in (xinput.SlaveKeyboard, xinput.SlavePointer, xinput.FloatingSlave):
                 continue
-            if 'g Heavy Industries Georgi Keyboard' != devinfo.name:
+            if devinfo.name not in ('g Heavy Industries Georgi Keyboard', 'Andrew Hess starboard Keyboard'):
                 continue
             if devinfo.use != xinput.FloatingSlave:
                 subprocess.run(["xinput", "--float", str(devinfo.deviceid)])
