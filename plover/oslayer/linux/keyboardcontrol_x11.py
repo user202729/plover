@@ -303,6 +303,10 @@ class KeyboardCapture(Capture):
         # as mentioned before, on_ready() or on_error() will not be called before this function returns,
         # but the return value of this function can be used to check whether the keyboard is connected or not.
         self._event_loop = XEventLoop(self._on_event, name='KeyboardCapture')
+        self._devices = None  # we need to set this to None because in _update_devices there's a check if
+        # the list of devices changed, if it does then self._window.xinput_select_events is called to
+        # listen to events, and even if the keyboard is disconnected at the start we still have to listen to
+        # HierarchyChanged events. So, we force the lists to be different.
         with self._event_loop as display:
             if not display.has_extension('XInputExtension'):
                 raise Exception('X11\'s XInput extension is required, but could not be found.')
