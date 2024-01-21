@@ -4,14 +4,47 @@
 
 "For use with a computer keyboard (preferably NKRO) as a steno machine."
 
+import enum
+from collections import OrderedDict
+
 from plover import _
 from plover.machine.base import StenotypeBase
 from plover.misc import boolean
 from plover.oslayer.keyboardcontrol import KeyboardCapture
+import json
 
 
 # i18n: Machine name.
 _._('Keyboard')
+
+
+class KeyboardMode(str, enum.Enum):
+    DISABLED = "Disabled"
+    HYBRID = "Hybrid"
+    STENO = "Steno"
+
+    def __str__(self):
+        return self.value
+
+
+class KeyboardModeDict(OrderedDict):
+    """
+    Subclass of OrderedDict that makes string representation equal to JSON dump,
+    to make it easy to pass to configuration.
+    """
+    def __str__(self):
+        return json.dumps(OrderedDict((k, str(v)) for k, v in self.items()), sort_keys=True)
+
+
+def keyboard_modes_dict(value):
+    """
+    Convert a configuration value to a dict of {keyboard name: keyboard mode}.
+    """
+    if isinstance(value, KeyboardModeDict):
+        return value
+    if isinstance(value, str):
+        return KeyboardModeDict((k, KeyboardMode(v)) for k, v in json.loads(value).items())
+    raise ValueError(value)
 
 
 class Keyboard(StenotypeBase):
@@ -156,4 +189,6 @@ class Keyboard(StenotypeBase):
         return {
             'arpeggiate': (False, boolean),
             'first_up_chord_send': (False, boolean),
+            'keyboard_default_mode': (KeyboardMode.HYBRID, KeyboardMode),
+            'keyboard_modes': (KeyboardModeDict(), keyboard_modes_dict),
         }

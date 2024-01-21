@@ -1,5 +1,6 @@
 from copy import copy
 from pathlib import Path
+import enum
 
 from PyQt5.QtCore import Qt, QVariant, pyqtSignal
 from PyQt5.QtGui import (
@@ -11,16 +12,19 @@ from PyQt5.QtGui import (
 )
 from PyQt5.QtWidgets import (
     QGroupBox,
+    QComboBox,
     QStyledItemDelegate,
     QStyle,
     QToolTip,
+    QTableWidgetItem,
 )
 
 from serial import Serial
-from serial.tools.list_ports import comports
+from serial.tools.list_ports import comports  # type: ignore
 
 from plover import _
-from plover.oslayer.serial import patch_ports_info
+from plover.oslayer.serial import patch_ports_info  # type: ignore
+from plover.machine.keyboard import KeyboardMode
 
 from plover.gui_qt.config_keyboard_widget_ui import Ui_KeyboardWidget
 from plover.gui_qt.config_serial_widget_ui import Ui_SerialWidget
@@ -200,6 +204,30 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
 
     valueChanged = pyqtSignal(QVariant)
 
+    DEFAULT_KEYBOARD_STR = _("<default>")
+
+    keyboard_mode_tooltip = {
+        KeyboardMode.DISABLED: _("Use this keyboard as normal keyboard."),
+        KeyboardMode.HYBRID: _("Use this keyboard as normal keyboard when Plover is disabled, and steno keyboard when Plover is enabled."),
+        KeyboardMode.STENO: _("Use this keyboard as steno keyboard. Suppress all keys when Plover is disabled."),
+    }
+
+    class ItemDelegate(QStyledItemDelegate):
+
+        def __init__(self, keyboard_option_instance):
+            super().__init__()
+            self._keyboard_option_instance = keyboard_option_instance
+
+        def createEditor(self, parent, option, index):
+            combo = QComboBox(parent)
+            if index.column() == 0:
+                combo.addItem('')
+                combo.addItems(self._keyboard_option_instance.get_keyboard_names())
+                combo.setEditable(True)
+            else:
+                combo.addItems([*KeyboardMode])
+            return combo
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -211,10 +239,64 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
         ))
         self._value = {}
 
-    def setValue(self, value):
-        self._value = copy(value)
+        self.configKeyboards.setColumnCount(2)
+        self.configKeyboards.setHorizontalHeaderLabels((
+            _('Keyboard'),
+            _('Mode'),
+        ))
+        self.configKeyboards.setItemDelegate(self.ItemDelegate(self))
+        self._updating = False
+
+    def on_cell_changed(self, row, column):
+        if self._updating:
+            return
+
+        self._value['keyboard_modes'].clear()
+        self._value['keyboard_default_mode'] = None
+        for row in range(self.configKeyboards.rowCount()):
+            keyboard_name = self.configKeyboards.item(row, 0).text()
+            mode = KeyboardMode(self.configKeyboards.item(row, 1).text())
+            if keyboard_name == self.DEFAULT_KEYBOARD_STR:
+                self._value['keyboard_default_mode'] = mode
+            else:
+                self._value['keyboard_modes'][keyboard_name] = mode
+
+
+        assert self._value['keyboard_default_mode'] is not None
+        self.valueChanged.emit(self._value)
+
+    def _refresh_widget_content(self):
+        """
+        Refresh the content of the widget based on self._value.
+        """
+        value = self._value
+        self._updating = True
         self.arpeggiate.setChecked(value['arpeggiate'])
         self.first_up_chord_send.setChecked(value['first_up_chord_send'])
+
+        self.configKeyboards.setRowCount(0)
+
+        for row, (keyboard_name, mode) in enumerate([
+            (KeyboardOption.DEFAULT_KEYBOARD_STR, value['keyboard_default_mode']),
+            *value['keyboard_modes'].items()
+        ]):
+            self.configKeyboards.insertRow(row)
+            item = QTableWidgetItem(keyboard_name)
+            if row == 0:
+                assert keyboard_name == KeyboardOption.DEFAULT_KEYBOARD_STR
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            else:
+                assert keyboard_name != KeyboardOption.DEFAULT_KEYBOARD_STR
+
+            self.configKeyboards.setItem(row, 0, item)
+            assert isinstance(mode, KeyboardMode)
+            item = QTableWidgetItem(str(mode))
+            self.configKeyboards.setItem(row, 1, item)
+        self._updating = False
+
+    def setValue(self, value):
+        self._value = copy(value)
+        self._refresh_widget_content()
 
     def on_arpeggiate_changed(self, value):
         self._value['arpeggiate'] = value
@@ -223,3 +305,27 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
     def on_first_up_chord_send_changed(self, value):
         self._value['first_up_chord_send'] = value
         self.valueChanged.emit(self._value)
+
+    @property
+    def _selected_keyboards(self):
+        return sorted(self.configKeyboards.selectedIndexes(),
+                      key=lambda index: index.row())
+
+    def on_add_keyboard(self):
+        if '' in self._value['keyboard_modes']:
+            self._value['keyboard_modes'].move_to_end('')
+        else:
+            self._value['keyboard_modes'][''] = self._value['keyboard_default_mode']
+        self._refresh_widget_content()
+        self.valueChanged.emit(self._value)
+
+    def on_remove_keyboard(self):
+        for row in self._selected_keyboards:
+            keyboard_name = self.configKeyboards.item(row.row(), 0).text()
+            if keyboard_name in self._value['keyboard_modes']:
+                del self._value['keyboard_modes'][keyboard_name]
+        self._refresh_widget_content()
+        self.valueChanged.emit(self._value)
+
+    def get_keyboard_names(self):
+        return ["Georgi", "Built-in keyboard"]
