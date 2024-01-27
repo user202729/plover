@@ -6,12 +6,18 @@
 
 import enum
 from collections import OrderedDict
+from pathlib import Path
+from threading import Thread, Lock
+from queue import Queue
+import json
+import asyncio
 
 from plover import _
 from plover.machine.base import StenotypeBase
 from plover.misc import boolean
 from plover.oslayer.keyboardcontrol import KeyboardCapture
-import json
+from plover.steno import Stroke
+from plover.oslayer.config import CONFIG_DIR
 
 
 # i18n: Machine name.
@@ -113,9 +119,50 @@ class Keyboard(StenotypeBase):
         super().set_keymap(keymap)
         self._update_bindings()
 
+    async def _send_stroke(self, index: int, stroke_on_hold, stroke_on_release):
+        #print("hi from task")
+        await asyncio.sleep(0.2)
+        okay = False
+        with self._lock:
+            if self._current_state_index == index:
+                okay = True
+                self._stroke_on_release = stroke_on_release
+            #else:
+                #print("Not sending stroke", stroke_on_hold, "because state changed with index", self._current_state_index, "vs", index)
+        if okay:
+            print("Sending stroke", stroke_on_hold)
+            self._notify(stroke_on_hold.keys())
+
+    def _thread_fn(self):
+        #print("running the loop")
+        self._loop.run_forever()
+        #print("thread returned")
+
     def start_capture(self):
         """Begin listening for output from the stenotype machine."""
         self._initializing()
+        self._current_state_index = 0
+        self._current_state = None
+        self._current_task = None
+        self._loop = asyncio.new_event_loop()
+        self._stroke_on_release = None
+        self._events = Queue()
+        self._lock = Lock()
+        self._thread_object = Thread(target=self._thread_fn)
+        self._thread_object.start()
+
+        # idea: hold TPWHR for holding shift etc.
+        self._special_actions = {}
+        import itertools
+        for i in itertools.product(
+                (Stroke(0), Stroke("T")),
+                (Stroke(0), Stroke("K")),
+                (Stroke(0), Stroke("A")),
+                (Stroke(0), Stroke("O")),
+                ):
+            s=sum(i, Stroke("PWHR"))
+            self._special_actions[s] = (s|Stroke("-FPLT"), s|Stroke("-RBGS"))
+
         try:
             self._keyboard_capture = KeyboardCapture(self._ready, self._error)
             self._keyboard_capture.key_down = self._key_down
@@ -131,6 +178,9 @@ class Keyboard(StenotypeBase):
 
     def stop_capture(self):
         """Stop listening for output from the stenotype machine."""
+        self._unhold()
+        self._events.put(None)
+        self._thread_object.join(timeout=1)
         if self._keyboard_capture is not None:
             self._is_suppressed = False
             self._update_suppression()
@@ -145,10 +195,37 @@ class Keyboard(StenotypeBase):
     def suppress_last_stroke(self, send_backspaces):
         pass
 
+    def _unhold(self):
+        if self._stroke_on_release is not None:
+            print("Release --- Sending stroke", self._stroke_on_release)
+            self._notify(self._stroke_on_release.keys())
+            self._stroke_on_release = None
+
+    def _keys_to_stroke(self, keys):
+        return Stroke({self._bindings.get(k) for k in keys} - {None})
+
     def _key_down(self, key):
         """Called when a key is pressed."""
         assert key is not None
-        self._down_keys.add(key)
+
+        if key in self._down_keys:
+            return
+
+        self._unhold()
+        with self._lock:
+            self._current_state_index += 1
+            self._down_keys.add(key)
+
+            if self._keys_to_stroke(self._down_keys) in self._special_actions:
+                stroke_on_hold, stroke_on_release=self._special_actions[self._keys_to_stroke(self._down_keys)]
+                #print("notice state change", self._keys_to_stroke(self._down_keys))
+                if self._current_task is not None:
+                    self._current_task.cancel()
+                self._current_task = asyncio.run_coroutine_threadsafe(
+                        (self._send_stroke(self._current_state_index, stroke_on_hold, stroke_on_release)),
+                        self._loop)
+                #print("task created", self._current_task)
+
         if self._first_up_chord_send:
             self._chord_already_sent = False
         else:
@@ -157,6 +234,8 @@ class Keyboard(StenotypeBase):
     def _key_up(self, key):
         """Called when a key is released."""
         assert key is not None
+        self._unhold()
+        self._current_state_index += 1
 
         self._down_keys.discard(key)
 
