@@ -160,8 +160,8 @@ class Keyboard(StenotypeBase):
                 (Stroke(0), Stroke("A")),
                 (Stroke(0), Stroke("O")),
                 ):
-            s=sum(i, Stroke("PWHR"))
-            self._special_actions[s] = (s|Stroke("-FPLT"), s|Stroke("-RBGS"))
+            s=sum(i, Stroke("PWR*"))
+            self._special_actions[s] = (s|Stroke("-FBLSD"), s|Stroke("-RPGTZ"))
 
         try:
             self._keyboard_capture = KeyboardCapture(self._ready, self._error)
