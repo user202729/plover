@@ -142,6 +142,16 @@ class Keyboard(StenotypeBase):
         """Begin listening for output from the stenotype machine."""
         self._initializing()
         self._current_state_index = 0
+        """
+        The variable above is used to detect if a combination is held for long enough, it works as follows.
+
+        Whenever the set _down_keys changes, a timer is set to be fired in some time duration (e.g. 0.1 seconds).
+        If the set _down_keys has not changed the whole time, and it is a special action,
+        then the action is fired.
+
+        In order to detect if the set changed within the given time duration, the state index is increased
+        for every change of _down_keys.
+        """
         self._current_state = None
         self._current_task = None
         self._loop = asyncio.new_event_loop()
@@ -204,6 +214,17 @@ class Keyboard(StenotypeBase):
     def _keys_to_stroke(self, keys):
         return Stroke({self._bindings.get(k) for k in keys} - {None})
 
+    def _check_special_actions(self):
+        if self._keys_to_stroke(self._down_keys) in self._special_actions:
+            stroke_on_hold, stroke_on_release=self._special_actions[self._keys_to_stroke(self._down_keys)]
+            #print("notice state change", self._keys_to_stroke(self._down_keys))
+            if self._current_task is not None:
+                self._current_task.cancel()
+            self._current_task = asyncio.run_coroutine_threadsafe(
+                    (self._send_stroke(self._current_state_index, stroke_on_hold, stroke_on_release)),
+                    self._loop)
+            #print("task created", self._current_task)
+
     def _key_down(self, key):
         """Called when a key is pressed."""
         assert key is not None
@@ -212,19 +233,11 @@ class Keyboard(StenotypeBase):
             return
 
         self._unhold()
-        with self._lock:
-            self._current_state_index += 1
-            self._down_keys.add(key)
 
-            if self._keys_to_stroke(self._down_keys) in self._special_actions:
-                stroke_on_hold, stroke_on_release=self._special_actions[self._keys_to_stroke(self._down_keys)]
-                #print("notice state change", self._keys_to_stroke(self._down_keys))
-                if self._current_task is not None:
-                    self._current_task.cancel()
-                self._current_task = asyncio.run_coroutine_threadsafe(
-                        (self._send_stroke(self._current_state_index, stroke_on_hold, stroke_on_release)),
-                        self._loop)
-                #print("task created", self._current_task)
+        with self._lock:
+            self._down_keys.add(key)
+            self._current_state_index += 1
+            self._check_special_actions()
 
         if self._first_up_chord_send:
             self._chord_already_sent = False
@@ -237,7 +250,10 @@ class Keyboard(StenotypeBase):
         self._unhold()
         self._current_state_index += 1
 
-        self._down_keys.discard(key)
+        with self._lock:
+            self._down_keys.discard(key)
+            self._current_state_index += 1
+            self._check_special_actions()
 
         if self._first_up_chord_send:
             if self._chord_already_sent:
