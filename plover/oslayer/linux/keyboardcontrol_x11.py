@@ -206,17 +206,12 @@ class XEventLoop:
 
 class KeyboardCapture(Capture):
 
-    def __init__(self, on_ready, on_error):
+    def __init__(self):
         super().__init__()
         self._event_loop = None
         self._window = None
         self._suppressed_keys = set()
         self._devices = []
-
-        # these 2 functions will only be called strictly after start() finishes.
-        # start() will return a bool depends on whether it finds a keyboard.
-        self._on_ready = on_ready
-        self._on_error = on_error
 
     def _update_devices(self, display):
         # Find all keyboard devices.
@@ -274,9 +269,9 @@ class KeyboardCapture(Capture):
                     ):
                 assert self._event_loop._lock.locked()
                 if self._update_devices(self._event_loop._display):
-                    self._on_ready()
+                    self.on_ready()
                 else:
-                    self._on_error()
+                    self.on_error()
             return
 
         if event.evtype not in (xinput.KeyPress, xinput.KeyRelease):
@@ -297,11 +292,6 @@ class KeyboardCapture(Capture):
             self.key_up(key)
 
     def start(self):
-        # return bool: whether it finds a keyboard. Will start "capturing" nevertheless.
-        # if initially there's no keyboard, on_ready() will be called when it finds one.
-        
-        # as mentioned before, on_ready() or on_error() will not be called before this function returns,
-        # but the return value of this function can be used to check whether the keyboard is connected or not.
         self._event_loop = XEventLoop(self._on_event, name='KeyboardCapture')
         self._devices = None  # we need to set this to None because in _update_devices there's a check if
         # the list of devices changed, if it does then self._window.xinput_select_events is called to

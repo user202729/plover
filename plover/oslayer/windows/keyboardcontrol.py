@@ -402,6 +402,7 @@ class KeyboardCapture(Capture):
         self._proc.start()
         self._thread = threading.Thread(target=self._run)
         self._thread.start()
+        return True
 
     def _run(self):
         while True:

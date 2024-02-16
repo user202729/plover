@@ -174,7 +174,9 @@ class Keyboard(StenotypeBase):
             self._special_actions[s] = (s|Stroke("-FBLSD"), s|Stroke("-RPGTZ"))
 
         try:
-            self._keyboard_capture = KeyboardCapture(self._ready, self._error)
+            self._keyboard_capture = KeyboardCapture()
+            self._keyboard_capture.on_ready = self._ready
+            self._keyboard_capture.on_error = self._error
             self._keyboard_capture.key_down = self._key_down
             self._keyboard_capture.key_up = self._key_up
             if self._keyboard_capture.start():
