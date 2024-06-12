@@ -184,6 +184,7 @@ class Keyboard(StenotypeBase):
                 ):
             s=sum(i, Stroke("PWR*"))
             self._special_actions[s] = (s|Stroke("-FBLSD"), s|Stroke("-RPGTZ"))
+            self._special_actions[s-Stroke("*")+Stroke("#")] = (s|Stroke("-FBLSD"), s|Stroke("-RPGTZ"))  # starboard stuff…
 
         try:
             self._keyboard_capture = KeyboardCapture()
