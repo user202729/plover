@@ -276,7 +276,9 @@ class KeyboardCapture(Capture):
 
         if event.evtype not in (xinput.KeyPress, xinput.KeyRelease):
             return
-        assert event.data.sourceid in self._devices
+        #assert event.data.sourceid in self._devices
+        if event.data.sourceid not in self._devices:
+            return
         keycode = event.data.detail
         modifiers = event.data.mods.effective_mods & ~0b10000 & 0xFF
         key = KEYCODE_TO_KEY.get(keycode)
