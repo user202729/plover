@@ -264,6 +264,8 @@ class Keyboard(StenotypeBase):
 
     def _key_up(self, key):
         """Called when a key is released."""
+        _debug_log("up--", self._bindings.get(key))
+
         assert key is not None
         self._unhold()
         self._current_state_index += 1
@@ -306,8 +308,6 @@ class Keyboard(StenotypeBase):
             del self._delay_timers[key]
 
     def _delayed_key_up(self, key)->None:
-        _debug_log("up--", self._bindings.get(key))
-
         #self._key_up(key)
 
         self._delete_pending_timer(key)
