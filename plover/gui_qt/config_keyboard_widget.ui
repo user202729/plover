@@ -67,7 +67,7 @@ If the key is pressed and released again, another chord is sent.</string>
   <action name="action_AddKeyboard">
    <property name="icon">
     <iconset resource="resources/resources.qrc">
-     <normaloff>:/add.svg</normaloff>:/add.svg</iconset>
+    <normaloff>:/resources/add.svg</normaloff>:/resources/add.svg</iconset>
    </property>
    <property name="text">
     <string>Add keyboard</string>
@@ -79,7 +79,7 @@ If the key is pressed and released again, another chord is sent.</string>
   <action name="action_RemoveKeyboard">
    <property name="icon">
     <iconset resource="resources/resources.qrc">
-     <normaloff>:/remove.svg</normaloff>:/remove.svg</iconset>
+    <normaloff>:/resources/remove.svg</normaloff>:/resources/remove.svg</iconset>
    </property>
    <property name="text">
     <string>Remove keyboard</string>
@@ -126,7 +126,7 @@ If the key is pressed and released again, another chord is sent.</string>
    <sender>action_AddKeyboard</sender>
    <signal>triggered()</signal>
    <receiver>KeyboardWidget</receiver>
-   <slot>on_add_keyboard()</slot>
+   <slot>on_addKeyboard()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -142,7 +142,7 @@ If the key is pressed and released again, another chord is sent.</string>
    <sender>action_RemoveKeyboard</sender>
    <signal>triggered()</signal>
    <receiver>KeyboardWidget</receiver>
-   <slot>on_remove_keyboard()</slot>
+   <slot>on_removeKeyboard()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -158,7 +158,7 @@ If the key is pressed and released again, another chord is sent.</string>
    <sender>configKeyboards</sender>
    <signal>cellChanged(int,int)</signal>
    <receiver>KeyboardWidget</receiver>
-   <slot>on_cell_changed(int,int)</slot>
+   <slot>on_cellChanged(int,int)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>136</x>
@@ -174,8 +174,8 @@ If the key is pressed and released again, another chord is sent.</string>
  <slots>
   <slot>update_arpeggiate(bool)</slot>
   <slot>update_first_up_chord_send(bool)</slot>
-  <slot>on_add_keyboard()</slot>
-  <slot>on_remove_keyboard()</slot>
-  <slot>on_cell_changed(int,int)</slot>
+  <slot>on_addKeyboard()</slot>
+  <slot>on_removeKeyboard()</slot>
+  <slot>on_cellChanged(int,int)</slot>
  </slots>
 </ui>

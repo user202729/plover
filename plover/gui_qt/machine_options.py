@@ -291,7 +291,7 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
         )
 
     @Slot(int, int)
-    def on_cell_changed(self, row, column):
+    def on_cellChanged(self, row, column):
         if self._updating:
             return
 
@@ -313,7 +313,7 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
         self.valueChanged.emit(self._value)
 
     @Slot()
-    def on_add_keyboard(self):
+    def on_addKeyboard(self):
         # Use empty string as placeholder keyboard name.
         if "" in self._value["keyboard_modes"]:
             # Move placeholder to end.
@@ -325,7 +325,7 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
         self.valueChanged.emit(self._value)
 
     @Slot()
-    def on_remove_keyboard(self):
+    def on_removeKeyboard(self):
         for index in self._selected_keyboards:
             keyboard_name = self.configKeyboards.item(index.row(), 0).text()
             if keyboard_name in self._value["keyboard_modes"]:
