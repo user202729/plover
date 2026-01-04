@@ -44,7 +44,7 @@ def resource_timestamp(resource_name):
 def resource_update(resource_name):
     if resource_name.startswith(ASSET_SCHEME):
         raise ValueError(f"updating an asset is unsupported: {resource_name}")
-    filename = resource_filename(resource_name)
+    filename = os.path.realpath(resource_filename(resource_name))
     directory = os.path.dirname(filename)
     extension = os.path.splitext(filename)[1]
     tempfile = NamedTemporaryFile(delete=False, dir=directory, suffix=extension or None)

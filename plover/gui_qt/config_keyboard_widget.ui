@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>159</width>
-    <height>66</height>
+    <width>274</width>
+    <height>390</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,9 +38,57 @@ If the key is pressed and released again, another chord is sent.</string>
      </property>
     </widget>
    </item>
+   <item row="2" column="0">
+    <widget class="QTableWidget" name="configKeyboards">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>300</height>
+      </size>
+     </property>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QToolBar" name="toolBar">
+     <property name="windowTitle">
+      <string>toolBar</string>
+     </property>
+     <addaction name="action_AddKeyboard"/>
+     <addaction name="action_RemoveKeyboard"/>
+    </widget>
+   </item>
   </layout>
+  <action name="action_AddKeyboard">
+   <property name="icon">
+    <iconset resource="resources/resources.qrc">
+     <normaloff>:/add.svg</normaloff>:/add.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Add keyboard</string>
+   </property>
+   <property name="toolTip">
+    <string>Add keyboard</string>
+   </property>
+  </action>
+  <action name="action_RemoveKeyboard">
+   <property name="icon">
+    <iconset resource="resources/resources.qrc">
+     <normaloff>:/remove.svg</normaloff>:/remove.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Remove keyboard</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources/resources.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>arpeggiate</sender>
@@ -74,9 +122,60 @@ If the key is pressed and released again, another chord is sent.</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_AddKeyboard</sender>
+   <signal>triggered()</signal>
+   <receiver>KeyboardWidget</receiver>
+   <slot>on_add_keyboard()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>136</x>
+     <y>118</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_RemoveKeyboard</sender>
+   <signal>triggered()</signal>
+   <receiver>KeyboardWidget</receiver>
+   <slot>on_remove_keyboard()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>136</x>
+     <y>118</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>configKeyboards</sender>
+   <signal>cellChanged(int,int)</signal>
+   <receiver>KeyboardWidget</receiver>
+   <slot>on_cell_changed(int,int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>136</x>
+     <y>131</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>136</x>
+     <y>118</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>update_arpeggiate(bool)</slot>
   <slot>update_first_up_chord_send(bool)</slot>
+  <slot>on_add_keyboard()</slot>
+  <slot>on_remove_keyboard()</slot>
+  <slot>on_cell_changed(int,int)</slot>
  </slots>
 </ui>

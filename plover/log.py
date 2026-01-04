@@ -9,13 +9,14 @@ import logging
 import traceback
 
 from logging.handlers import RotatingFileHandler
-from logging import INFO, WARNING
+from logging import INFO, WARNING, DEBUG
 
 from plover.oslayer.config import CONFIG_DIR
 
 
 LOG_FORMAT = "%(asctime)s [%(threadName)s] %(levelname)s: %(message)s"
-LOG_FILENAME = os.path.realpath(os.path.join(CONFIG_DIR, "plover.log"))
+#LOG_FILENAME = os.path.realpath(os.path.join(CONFIG_DIR, "plover.log"))
+LOG_FILENAME = '/tmp/plover.log'
 LOG_MAX_BYTES = 10000000
 LOG_COUNT = 9
 
@@ -65,7 +66,7 @@ class Logger:
         self._platform_handler = None
         self._logger = logging.getLogger("plover")
         self._logger.addHandler(self._print_handler)
-        self._logger.setLevel(INFO)
+        self._logger.setLevel(DEBUG)
         self._stroke_filename = None
         self._stroke_logger = logging.getLogger("plover-strokes")
         self._stroke_logger.setLevel(INFO)
