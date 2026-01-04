@@ -131,7 +131,7 @@ for char in "0123456789abcdefghijklmnopqrstuvwxyz":
 CHAR_TO_KEYNAME = {char: name for name, char in KEYNAME_TO_CHAR.items()}
 
 
-_SPLIT_RX = re.compile(r"(\s+|(?:\w+(?:\s*(?:\(|:up|:down))?))|.)")
+_SPLIT_RX = re.compile(r"(\s+|(?:\w+(?:\s*(?:\(|:up|:down))?)|.)")
 
 
 def parse_key_combo(combo_string, key_name_to_key_code=None):
