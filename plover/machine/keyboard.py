@@ -292,7 +292,6 @@ class Keyboard(StenotypeBase):
             ):
                 return
 
-        self._last_stroke_key_down_count = self._stroke_key_down_count
         if self._first_up_chord_send:
             steno_keys = {self._bindings.get(k) for k in self._down_keys | {key}}
             self._chord_already_sent = True
