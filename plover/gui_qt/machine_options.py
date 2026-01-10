@@ -202,12 +202,25 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
                 "space bar is pressed to send the stroke."
             )
         )
+        self.chord_simulations.setToolTip(
+            _(
+                "JSON mapping from a held trigger stroke to an object describing what to emit.\n"
+                "\n"
+                "Fields:\n"
+                '- "on_enter_state": stroke emitted after a hold delay\n'
+                '- "on_exit_state": stroke emitted on release\n'
+                '- "delay": hold delay formatted as "<float>s"\n'
+                "\n"
+                'Example: {"PWR*": {"on_enter_state":"PWR*FBLS","on_exit_state":"PWR*RPGT","delay":"0.2s"}}'
+            )
+        )
         self._value = {}
 
     def setValue(self, value):
         self._value = copy(value)
         self.arpeggiate.setChecked(value["arpeggiate"])
         self.first_up_chord_send.setChecked(value["first_up_chord_send"])
+        self.chord_simulations.setPlainText(value["chord_simulations"])
 
     @Slot(bool)
     def update_arpeggiate(self, value):
@@ -217,6 +230,11 @@ class KeyboardOption(QGroupBox, Ui_KeyboardWidget):
     @Slot(bool)
     def update_first_up_chord_send(self, value):
         self._value["first_up_chord_send"] = value
+        self.valueChanged.emit(self._value)
+
+    @Slot()
+    def update_chord_simulations(self):
+        self._value["chord_simulations"] = self.chord_simulations.toPlainText()
         self.valueChanged.emit(self._value)
 
 

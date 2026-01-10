@@ -26,7 +26,11 @@ def capture():
         yield capture
 
 
-@pytest.fixture(params=[{"arpeggiate": False, "first_up_chord_send": False}])
+@pytest.fixture(
+    params=[
+        {"arpeggiate": False, "first_up_chord_send": False, "chord_simulations": "{}"}
+    ]
+)
 def machine(request, capture):
     machine = Keyboard(request.param)
     keymap = Keymap(Keyboard.KEYS_LAYOUT.split(), system.KEYS + Keyboard.ACTIONS)
@@ -36,10 +40,14 @@ def machine(request, capture):
 
 
 arpeggiate = pytest.mark.parametrize(
-    "machine", [{"arpeggiate": True, "first_up_chord_send": False}], indirect=True
+    "machine",
+    [{"arpeggiate": True, "first_up_chord_send": False, "chord_simulations": "{}"}],
+    indirect=True,
 )
 first_up_chord_send = pytest.mark.parametrize(
-    "machine", [{"arpeggiate": False, "first_up_chord_send": True}], indirect=True
+    "machine",
+    [{"arpeggiate": False, "first_up_chord_send": True, "chord_simulations": "{}"}],
+    indirect=True,
 )
 """
 These are decorators to be applied on test functions to modify the machine configuration.
@@ -122,3 +130,35 @@ def test_first_up_chord_send(capture, machine, strokes):
     assert strokes == [{"S-", "T-", "-G"}, {"S-", "T-", "-G"}]
     send_input(capture, "-a -w")
     assert strokes == [{"S-", "T-", "-G"}, {"S-", "T-", "-G"}]
+
+
+def test_chord_simulations(capture, strokes):
+    class ImmediateTimer:
+        def __init__(self, delay_s, fn):
+            self._fn = fn
+
+        def start(self):
+            self._fn()
+
+        def cancel(self):
+            pass
+
+    with mock.patch("plover.machine.keyboard.Timer", new=ImmediateTimer):
+        machine = Keyboard(
+            {
+                "arpeggiate": False,
+                "first_up_chord_send": False,
+                "chord_simulations": '{"PWR*":{"on_enter_state":"PWR*FBLS","on_exit_state":"PWR*RPGT","delay":"0.2s"}}',
+            }
+        )
+        keymap = Keymap(Keyboard.KEYS_LAYOUT.split(), system.KEYS + Keyboard.ACTIONS)
+        keymap.set_mappings(system.KEYMAPS["Keyboard"])
+        machine.set_keymap(keymap)
+        machine.add_stroke_callback(strokes.append)
+        machine.start_capture()
+
+        send_input(capture, "+e +d +f +t -e -d -f -t")
+        assert list(map(set, strokes)) == [
+            {"P-", "W-", "R-", "*", "-F", "-B", "-L", "-S"},
+            {"P-", "W-", "R-", "*", "-R", "-P", "-G", "-T"},
+        ]

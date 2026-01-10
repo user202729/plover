@@ -186,6 +186,27 @@ For the default machine plugins, the following options are available:
 Whether to enable arpeggiate mode on the keyboard. `False` by default.
 ```
 
+```{describe} chord_simulations
+For the `Keyboard` machine: a JSON string representing a mapping from a trigger
+stroke (RTFCRE) to a description of what to emit while holding that chord.
+
+The value must decode to:
+
+`dict[str, {"on_enter_state": str, "on_exit_state": str, "delay": str}]`
+
+`delay` must be formatted as `"<float>s"`, e.g. `"0.2s"`.
+
+Example:
+
+`{"PWR*": {"on_enter_state":"PWR*FBLS","on_exit_state":"PWR*RPGT","delay":"0.2s"}}`
+
+When the user holds the trigger chord (e.g. `PWR*`), Plover will:
+
+- Emit `on_enter_state` after `delay` (if the chord is still held).
+- Emit `on_exit_state` on release.
+- Suppress the normal emission of the original trigger stroke.
+```
+
 ```{describe} port
 The serial port for serial connections. No default value.
 
